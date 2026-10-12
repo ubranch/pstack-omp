@@ -1,73 +1,58 @@
 ---
 name: setup-pstack
-description: Configure which models pstack uses per role and at what reasoning budget. Detects your available models and writes an always-applied rule that overrides the skill defaults. Use for /setup-pstack, "configure pstack models", "pstack budget", or changing pstack's model choices.
+description: "Inspect OMP model choices or change explicitly requested pstack agent routing and reasoning settings. Use for /setup-pstack, model configuration, or budget changes."
 ---
 
-# Setup pstack
+# Set up pstack on OMP
 
-Write `task.agentModelOverrides` in `~/.omp/agent/config.yml`, the keyed override map that sets pstack's model per role agent. The chat model stays the operator's choice, made with `/model`, and pstack never overrides it. `skill://omp-mechanics` holds the file shape.
+Inspect existing choices first. Running `/setup-pstack` alone does not authorize replacing models, changing budgets, or resetting configuration. Valid operator choices need no change. pstack does not set the active chat model, install providers, create agents, or expand approval permissions.
 
-## Steps
+Read [OMP model configuration](../omp-mechanics/references/setup-pstack-config.md) for map semantics. `skill://pstack-omp` owns role selection and dispatch. Configure only exact agent names accepted by the live runtime, not labels invented by an imported skill.
 
-### 1. Detect available models
+## 1. Inspect selected settings and available models
 
-Run `omp models` to list the models configured on this machine. That is the dependable source. If you cannot detect any, ask the user to paste the slugs they have access to. Never write a real slug you have not confirmed is available. The aliases `inherit-parent` and `auto` are always valid even though they are not detected slugs.
+Use exposed cfg tools or the `cfg://` configuration interface when available. Read their live documentation and consent requirements before use. Request only `modelRoles`, `task.agentModelOverrides`, and scope metadata needed for the requested change. Narrow role reads to referenced aliases when supported.
 
-### 2. Load current state
+If no native configuration reader is exposed, use documented read-only CLI commands in the same profile and project as this session:
 
-The default role-to-model mapping is the rule shape shown in step 5 below. If `task.agentModelOverrides` in `~/.omp/agent/config.yml` already exists, read it and treat its `# budget` line and its role values as the current choices. Otherwise start from those defaults. A line whose role is not in step 5, such as `how critics`, is from a retired role. Drop it.
-
-### 3. Budget, map, and confirm
-
-**(a) Ask for a budget.** Prefer `ask` over free text. Offer these four options with these exact labels, and name the current budget when the rule records one.
-
-- `unlimited — keep max`
-- `large — xhigh reasoning`
-- `medium — high reasoning`
-- `small — medium reasoning`
-
-**(b) Apply it.** Build the working table from the skill defaults, and on a re-run keep any role you changed by family, list, or alias (`inherit-parent`, `auto`). `unlimited` leaves every effort as in that table. `large`, `medium`, and `small` set the effort token of every real slug, panel entries included, to `xhigh`, `high`, or `medium`. The effort token is the last token, or the one before a trailing `fast`, on the ladder `max` > `xhigh` > `high` > `medium` > `low`. If the result is not a detected slug, use the same family's detected slug with the highest effort at or below the target, else mark the role as needing a choice. `inherit-parent` and `auto` do not change. So `small` turns your strongest judgment model into your strongest judgment model, and your fast code model into your fast code model.
-
-**(c) Show the roles and confirm.** Show every role with its model, marking any real slug not in the detected set as needing a choice. Also list each line step 2 dropped. Ask whether to accept as-is or change specific roles, offering the detected models plus `inherit-parent` and `auto` (both mean: this role runs on the parent chat model, which is how Auto users stay on Auto) as the options. Prefer `ask` over free text. For panel roles (arena runners, architect runners, interrogate reviewers) the value is a list, and one subagent runs per entry, alias entries included, so the list length sets the count. `arena cross-judge pool` is also a list, but Arena selects one value from it whose model family differs from the parent's when possible. `swarm workers` is the default model for every worker unless a race or comparison assigns another model per arm.
-
-### 4. Validate
-
-Every real slug written must be in the detected set. `inherit-parent` and `auto` always pass. If a chosen real slug is not available, stop and ask again.
-
-### 5. Write the rule
-
-Write `task.agentModelOverrides` and `modelRoles` in `~/.omp/agent/config.yml`, with a `# budget` comment carrying the chosen label and its target effort, and one entry per role agent, using the same labels poteto-mode uses. Overwrite the whole pstack part of both maps so re-runs stay idempotent. The block below is the role-to-capability table and not the file format, which `skill://omp-mechanics` holds. Shape:
-
-```
----
-description: pstack per-role model choices (overrides skill defaults)
----
-# pstack model configuration. One line per role. Delete a line to fall back to the skill default.
-# `inherit-parent` or `auto` as a value: the role runs on the parent chat model (leave it out of `task.agentModelOverrides`). Alias entries in a panel list still count toward its fan-out.
-# budget: unlimited (max)
-feature, refactoring: your fast code model
-bug-fix: your fast code model
-perf-issue: your fast code model
-hillclimb: your fast code model
-judgment and prose: your strongest judgment model
-hardest tasks: your strongest judgment model
-how explorer: your fast code model
-how explainer: your strongest judgment model
-why investigators: your fast code model
-why synthesizer: your strongest judgment model
-reflect tooling: your strongest instruction-following model
-reflect judgment, divergent, synthesizer: your strongest judgment model
-arena runners: one model per distinct family omp models reports
-arena cross-judge pool: one model per distinct family omp models reports
-swarm workers: your fast code model
-architect runners: one model per distinct family omp models reports
-interrogate reviewers: one model per distinct family omp models reports
+```sh
+omp config get modelRoles --json
+omp config get task.agentModelOverrides --json
+omp models
 ```
 
-### 6. Confirm
+Use an exposed model inventory instead of the CLI when it supplies the required information. Inventory determines the selectors and reasoning settings you can offer. Do not read provider credentials, auth files, environment dumps, or the entire config. Do not run `omp config list` to discover two keys. Resolve the active profile rather than assuming a config path.
 
-Tell the user which entries were written and that they apply to new sessions. Re-running this skill updates it.
+Finish with the relevant current choices, their resolution status, the available alternatives, and the effective scope. If an inventory or setting cannot be read, report that exact limitation. Missing inventory does not make an existing choice invalid.
 
-### 7. Offer a verification skill (optional)
+## 2. Preserve existing choices
 
-Check whether the project has a way to drive the real app for proof (a `verify-*` skill, or an existing harness). If not, offer once: "want a project-local verification skill, so agents can drive the app the way a user does and prove changes work? I can generate one with /create-verification-skill." On yes, invoke `/create-verification-skill` (resolves wherever pstack is installed: workspace, user, or plugin). On no, move on without pushing.
+Resolve existing selectors and aliases through the native runtime when possible. Leave valid choices alone, including inheritance from an absent agent override. Preserve unrelated and currently inactive agent entries. An agent missing from today's roster is not permission to delete its configuration.
+
+Do not import upstream provider defaults, role lists, panel sizes, or a universal reasoning ladder. Unresolved choices are reported for a user decision, not replaced with an invented fallback. For an inspection-only request, report the result and stop here.
+
+## 3. Propose only the requested change
+
+Use the user's stated model or budget request. If a required preference is missing, ask one focused question with choices supported by the detected inventory. Keep current choices as the default. A reasoning change uses the runtime's supported selector syntax, not a fabricated model slug or a task `effort` field.
+
+Show each affected agent or alias with its current and proposed value and write scope. An alias can affect multiple agents and other OMP work. Account for every known reference before proposing to change it. If those effects exceed the request, use an independent alias or obtain authorization for the wider change.
+
+Model configuration does not set participant count, concurrency, isolation, service tiers, advisors, fallbacks, or tool approvals. Report unavailable model diversity without changing those settings.
+
+## 4. Apply an authorized minimal edit
+
+Validate each requested selector against native resolution and the detected inventory. Confirm that its reasoning setting is supported. Validate agent names against the live dispatch contract. Resolve the writable layer and any higher-precedence override before writing.
+
+Prefer native cfg entry-level writes. Honor cfg's own consent gate even when the user requested the change or the approval mode allows writes. If consent is denied, times out, or cannot be collected, stop that operation and report any earlier writes. Do not retry through shell commands or direct file edits to bypass it.
+
+If cfg is unavailable, use a documented writer only when the intended scope and preservation of unrelated entries can be established. A whole-map writer requires a fresh read of the writable layer and a merge of only the authorized entries. Never persist a merged effective map from other layers into global settings. If the available interface cannot make that edit safely, report the exact missing capability and give the requested entry changes for the operator to apply.
+
+Write only the approved entries in `modelRoles` and `task.agentModelOverrides`. Remove an agent override only when the user requested inheritance, using the interface's supported entry deletion. Do not reset either map, remove retired-looking entries, rewrite config comments, or clean up other settings.
+
+## 5. Read back the affected entries
+
+Read only the changed settings and verify the requested entries. Report what changed, what stayed unchanged, any partial or refused write, and any layer that still overrides the saved choice. If no change was needed, say so.
+
+Routing changes apply to subsequent subagent launches after the runtime reloads settings. They do not switch a running agent or the current chat model. Do not require a restart without runtime evidence that one is needed.
+
+If the project lacks a real app driver and the user is asking how to prove changes, offer `/create-verification-skill` once. Create it only on an explicit request. Model setup does not install or generate verification tooling on its own.

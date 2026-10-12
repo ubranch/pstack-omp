@@ -12,6 +12,7 @@ UPSTREAM_URL=https://github.com/cursor/plugins
 PAT_SLUG='\b(claude-[a-z0-9.-]+|gpt-[0-9][a-z0-9.-]*|grok-[a-z0-9.-]+|gemini-[a-z0-9.-]+|opus-[a-z0-9.-]+)\b'
 PAT_CAPS='omp (has no|does not support|cannot|lacks) [A-Za-z`_.:-]+'
 PAT_RESIDUE='cursor-team-kit|/deslop|run_in_background|<agent-transcripts>|~/\.cursor/|AskQuestion|cloud_base_branch|~/\.omp/skills/|~/\.omp/pstack/|environment: "cloud"'
+PAT_CONTRACT='`hub`|hub[[:space:]]*\(\{|subagent_type|generalPurpose|`?(readonly|isolated|environment|run_in_background|cloud_base_branch)`?[[:space:]]*:[[:space:]]*(`|true|false|")|`model`[[:space:]]*:|[Ss]et `model`|[Oo]mit `model`|`model` (set|from|to|unset)|pstack-models\.mdc|pstack_[a-z_]+'
 # Every conflict git writes is bracketed by <<<<<<< and >>>>>>>, so a bare ======= needs no
 # branch of its own and a seven-character setext underline stops being a false positive.
 PAT_MARKER='^(<{7} |\|{7}( |$)|>{7} )'
@@ -55,20 +56,20 @@ ensure_canon() {
 # Step 1, upstream text as it is, with pstack/ stripped so skills and agents land at the root.
 extract_upstream() {
 	local sha="$1" work="$2"
-	git -C "$CANON" archive "$sha" pstack/skills pstack/agents |
+	git -c core.autocrlf=false -c core.eol=lf -C "$CANON" archive "$sha" pstack/skills pstack/agents |
 		tar -x --strip-components=1 -C "$work" || return 1
 	[ -d "$work/skills" ] && [ -d "$work/agents" ]
 }
 
-# Step 2, the substitution table. Binary files are skipped rather than corrupted, which is what
-# grep -I reports when the empty pattern does not match.
+# Step 2, prose translation. Upstream scripts keep their official fixes unchanged;
+# script adaptations are explicit fail-hard patches.
 apply_rules() {
 	local work="$1" rules="$2" f
 	while IFS= read -r -d '' f; do
 		if grep -Iq '' "$f"; then
 			sed -E -i -f "$rules" "$f" || return 1
 		fi
-	done < <(find "$work" -type f -print0)
+	done < <(find "$work" -type f -name '*.md' -print0)
 }
 
 # Step 3, the port's own code. A patch that no longer applies is a hard stop, because the

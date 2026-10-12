@@ -1,83 +1,27 @@
-# The omp shape of pstack's model configuration
+# OMP model configuration
 
-Amends **setup-pstack** steps 2, 3, 5, and 6. The block in the skill's step 5 is the
-role-to-capability table. This file is the file format.
+`skill://setup-pstack` owns inspection, authorization, validation, and writes. `skill://pstack-omp` owns dispatch. The port supplies no model defaults or required alias names.
 
-Two keys in `~/.omp/agent/config.yml` carry the choices. `task.agentModelOverrides` maps an agent
-name to a capability alias, and omp expands that alias through `modelRoles`. A `modelRoles` value
-may carry an effort suffix, written `<selector>:<effort>`, which is where the step 3 budget answer
-lands. The alias namespace is the operator's, and nothing in pstack reads a specific alias name.
-What is fixed is the four capabilities and the role labels, which are the ones poteto-mode and the
-routed skills use.
+## The two model maps
 
-A third key decides which model a slot ends up on after a failure. `retry.fallbackChains` is keyed
-by the same role names, and a spawn reached through a `@role` alias inherits that role's chain
-rather than the `default` chain. Leave it alone unless the operator asks, and tell them a panel
-slot can land off its configured family when its chain fires.
+`modelRoles` maps operator-chosen role aliases to native model selectors. Selectors can include supported reasoning suffixes. A selector's format, available models, and accepted reasoning values come from the active runtime and catalog, not an upstream model slug.
 
-Three more per-agent records sit beside the model map, keyed the same way and all optional for
-pstack. `task.agentServiceTierOverrides` sets a provider service tier,
-`task.agentPrewalk` arms a cheap-model handoff at the first write, and `task.agentAdvisor` pairs a
-spawn with an advisor model. Write none of them unless the operator asks for one.
+`task.agentModelOverrides` maps exact runtime agent names to native selectors or aliases such as `@<role>`. The runtime resolves the referenced role through `modelRoles`. An absent override retains runtime inheritance. A task display name or an imported workflow role is not an agent definition and cannot create a model slot.
 
-Overwrite the whole pstack part of both maps so re-runs stay idempotent, and leave omp's own roles
-alone. Adapt the names below rather than copying them.
+The maps are shared operator configuration. An alias may affect several agents or work outside pstack. Existing valid entries, unrelated roles, and the active chat model remain unchanged unless the user explicitly requests those effects. A missing map does not mean setup failed or that a rule must be generated.
 
-```yaml
-task:
-  agentModelOverrides:
-    # One entry per role agent, one alias per capability. Delete an entry and that
-    # agent runs on the parent chat model, which is the right default and needs no
-    # configuration. `inherit-parent` and `auto` are always-valid values that state
-    # it out loud. An alias entry in a panel list still counts toward its fan-out.
-    pstack_feature: "@pstack_fast_code"            # feature, refactoring
-    pstack_refactoring: "@pstack_fast_code"
-    pstack_bug_fix: "@pstack_fast_code"            # bug-fix
-    pstack_perf_issue: "@pstack_fast_code"         # perf-issue
-    pstack_hillclimb: "@pstack_fast_code"          # hillclimb
-    pstack_judgment: "@pstack_judgment"            # judgment and prose
-    pstack_hardest: "@pstack_judgment"             # hardest tasks
-    pstack_how_explorer: "@pstack_fast_code"       # how explorer
-    pstack_how_explainer: "@pstack_judgment"       # how explainer
-    pstack_why_investigator: "@pstack_fast_code"   # why investigators
-    pstack_why_synthesizer: "@pstack_judgment"     # why synthesizer
-    pstack_reflect_tooling: "@pstack_instruction"  # reflect tooling
-    pstack_reflect_judgment: "@pstack_judgment"    # reflect judgment, divergent, synthesizer
-    pstack_reflect_divergent: "@pstack_family_2"
-    pstack_reflect_synthesizer: "@pstack_judgment"
-    pstack_swarm_worker: "@pstack_fast_code"       # swarm workers
-    pstack_arena_runner_1: "@pstack_family_1"      # arena runners
-    pstack_arena_runner_2: "@pstack_family_2"
-    pstack_arena_runner_3: "@pstack_family_3"
-    pstack_arena_runner_4: "@pstack_family_4"
-    pstack_arena_judge_1: "@pstack_family_1"       # arena cross-judge pool
-    pstack_arena_judge_2: "@pstack_family_2"
-    pstack_architect_runner_1: "@pstack_family_1"  # architect runners
-    pstack_architect_runner_2: "@pstack_family_2"
-    pstack_architect_runner_3: "@pstack_family_3"
-    pstack_architect_runner_4: "@pstack_family_4"
-    pstack_interrogate_reviewer_1: "@pstack_family_1"  # interrogate reviewers
-    pstack_interrogate_reviewer_2: "@pstack_family_2"
-    pstack_interrogate_reviewer_3: "@pstack_family_3"
-    pstack_interrogate_reviewer_4: "@pstack_family_4"
-modelRoles:
-  # One line per alias. Each value is a selector `omp models` printed on this machine,
-  # taken from the user's step 3 answer. Write no slug you did not detect. Omit an
-  # alias and drop its entries above to run those roles on the parent chat model.
-  #   pstack_judgment     strongest judgment, for vague intent and cross-cutting design
-  #   pstack_instruction  strongest instruction following, for a precisely specified sequence
-  #   pstack_fast_code    fast code, for mechanical edits and bulk collection
-  #   pstack_family_1..4  one strong reviewer per distinct detected family, in family order
-```
+Upstream lists such as "arena runners" describe workflow participants. OMP's agent override map is not a participant list. Its entry count does not set panel size, and no thin agent files are required by the port. Native inheritance replaces Cursor's instruction to omit a task `model`; the port does not write `auto` or `inherit-parent` as invented selectors.
 
-Four capabilities cover every role, so four answers configure the whole stack. The panel roles are
-the exception. Each slot is a separate agent name, needs its own thin agent file, and takes its
-family from its own entry. A slot with no entry runs on the parent chat model, and four slots with
-no entries are four runs of the same model.
+## Scope and persistence
 
-The budget question in step 3 still applies. It picks the effort tier inside each family. With no
-selector at the asked-for tier, take the same family's highest tier at or below the target, and
-mark the role as needing a choice when that family offers none.
+OMP can resolve settings from environment, runtime, overlay, project, global, and default layers. The active profile can relocate global storage. Effective settings are not necessarily the writable layer, and a global edit can remain shadowed by a higher layer.
 
-Step 6 reports which entries were written, that `modelRoles` now carries the model choices, and
-that both apply to new sessions.
+Native cfg tools, when exposed, provide the preferred configuration interface. Their documented scope and consent rules govern mutations. Consent that is denied, unanswered, or unavailable does not authorize an alternative writer. The CLI provides selected-key inspection through `omp config get <key> --json` and model inventory through `omp models`. Neither requires displaying the entire config or reading credentials.
+
+Ordinary `omp config set` writes global settings. Project model-role assignment can have a different destination under the runtime's model-role storage policy. Copying an effective merged map into global settings would persist entries from other layers. Entry-level updates preserve that distinction. A whole-map update is safe only with a fresh writable-layer read and preservation of every unrelated entry.
+
+Model routing reloads for subsequent subagent launches and fallback decisions. A routing change does not restart an agent or change an already running chat's model.
+
+## Separate runtime settings
+
+Concurrency, isolation, provider service tiers, prewalk, advisors, retry chains, and approval policy are outside pstack model setup. Their current values remain operator-owned. A retry or fallback can change the model actually used, so configured aliases alone do not prove model or provider diversity. Returned resolution evidence is required for that claim.

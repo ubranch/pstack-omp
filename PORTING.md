@@ -1,243 +1,184 @@
-# pstack on omp, the port
+# Pstack on OMP
 
-## Upstream truth and the pinned baseline
+Use the [consumer install and upgrade guide](plugins/pstack/README.md) to install the ubranch fork. This document explains how the port is built and maintained.
 
-The true upstream is **`cursor/plugins`, subdirectory `pstack`** (MIT). This repository is the
-source of truth for the omp port. The old generator flow that built the port from a local `pstack`
-tree is retired, so the files here are the artifact.
+## Official source and pin
 
-The baseline is one file, `omp-port/UPSTREAM`, holding the full 40-hex sha of the upstream commit
-the port is synced to. Nothing else records it. Every derived field is generated from that sha by
-`omp-port/sync-upstream.sh`, which writes the plugin version into `plugins/pstack/package.json` and
-`.omp-plugin/marketplace.json` and regenerates the `pstack` catalog description from the live skill,
-playbook, and principle counts.
+The official source is [`cursor/plugins`, subdirectory `pstack`](https://github.com/cursor/plugins/tree/main/pstack), by Lauren Tan under the MIT license. This fork continues [negoro26's original OMP port](https://github.com/negoro26/pstack-omp). Attribution and licenses remain in [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-**`backnotprop/pstack` is a mirror and it is stale. Never use it as the parity baseline again.**
-This port was originally built from that mirror at `18e0e90` (2026-08-19), which was two weeks
-behind canonical. Diffing the mirror against the then-current canonical commit shows 224 changed
-content lines, counted as `diff -ru <mirror> <canonical> | grep -cE '^[+-][^+-]'`, so header, hunk,
-context, and blank lines do not count, plus three structural changes. Every parity claim made
-against the mirror inherited the staleness.
+The 0.15.19 update targets official commit `e5a02f8fb0409c2db7eb06eae9078b235a2b5009`. `omp-port/UPSTREAM` holds the authoritative full 40-character commit SHA for the generated tree. Branch history and a marketplace description are not substitutes for that pin.
 
-### Drift check
+`omp-port/sync-upstream.sh` reads the version from the pinned canonical `pstack/plugin.json`, falling back to canonical `pstack/.cursor-plugin/plugin.json` for historical pins. It refreshes native OMP package metadata and the marketplace description, not a shipped copy of the canonical manifest. Generated skill, playbook, and principle counts live in the [marketplace catalog](.omp-plugin/marketplace.json).
+
+The update adds `/ketchup`, `/correct`, `/poteto-help`, `/benchmark-checklist`, and `/principle-explain-the-number`. The [plugin README](plugins/pstack/README.md#new-in-the-01519-update) describes them.
+
+## Deterministic regeneration
+
+`plugins/pstack/skills` and `plugins/pstack/agents` are build output, except for the three owned directories below. The build:
+
+1. Extracts the official skills and agents at the pin.
+2. Applies the ordered translations in `omp-port/rules.sed`.
+3. Applies `omp-port/patches/*.patch` with zero fuzz. A patch that no longer applies stops the build.
+4. Restores the paths listed in `omp-port/owned.txt` from the working tree. A missing owned path falls back to `HEAD`.
+
+The port owns these directories:
+
+| Directory | Contract |
+|---|---|
+| `plugins/pstack/skills/pstack-omp` | Dispatch and agent lifecycle through the live schema and roster, plus process and messaging APIs. |
+| `plugins/pstack/skills/omp-mechanics` | Non-dispatch platform amendments, privacy, approvals, style precedence, and unavailable capabilities. |
+| `plugins/pstack/skills/setup-pstack` | Selected-key routing inspection and explicitly requested, consented configuration changes. |
+
+A direct edit to any other generated skill or agent fails reproducibility and is replaced by regeneration. Put a lasting change in `rules.sed`, a focused patch, or an owned directory. Keep upstream scripts and prose unless a specific OMP mechanic needs adaptation.
+
+Root documentation, the plugin README, extension code, and native package and marketplace metadata are maintained outside the generated skills and agents. The build does not extract upstream `docs/`. There is no local `plugins/pstack/docs/guide/` tree.
+
+## Check for official changes
+
+Run the port scripts from this repository. On Windows, use native Git Bash with the required Git, GitHub CLI, `jq`, and patch utilities available. A WSL shell does not operate on the same OMP installation by default.
 
 ```bash
 bash omp-port/sync-upstream.sh check
 ```
 
-Empty output and exit 0 mean no drift since the pin. Each line is an upstream commit that touched
-`pstack/`, newest first, as short sha then date then subject. The resolved target is the newest
-commit that touched `pstack/`, printed to stderr, and written to the file named by
-`SYNC_TARGET_OUT` when that variable is set. The workflow reads it from there instead of resolving
-the head a second time and getting a different answer.
+Empty stdout and exit code 0 mean no upstream drift since the pin. Otherwise, stdout lists commits that touched `pstack/`, newest first, with the short SHA, date, and subject. A nonempty list is a drift report, not a failed gate.
 
-### How to re-sync
+The resolved target is printed to stderr as `target <full-sha>`. If `SYNC_TARGET_OUT` is set, the script writes that same target to the named file. Automation uses the recorded target rather than resolving a possibly different head later.
 
-The port is a build, not a maintained tree. `plugins/pstack/skills` and `plugins/pstack/agents` are
-upstream text at the pinned sha with `omp-port/rules.sed` applied, then `omp-port/patches/*.patch`,
-then the paths in `omp-port/owned.txt` carried across. A hand edit under either directory fails the
-`reproducible` check, which rebuilds the pin and diffs it against the tree, and the next build
-deletes it. Put the change in `rules.sed`, in a patch, or in an owned path instead.
+## Sync or rebuild
 
-The `upstream-sync` workflow does this daily. It runs `bash omp-port/check-port.sh` on `main` first,
-so a red trunk stops the run rather than being merged over, then builds at the newest upstream
-commit that touched `pstack/`, opens a PR carrying the sync and gate output in its body, and squash
-merges it with `--delete-branch` when both passed. Squash merging is safe because
-`omp-port/UPSTREAM`, not the branch history, carries the base for the next build. It skips the run
-while any open PR still carries a `sync/upstream-` head.
+Before syncing, preserve any uncommitted edits to generated skills and agents. A normal sync refuses changes that it would overwrite, except for owned paths.
 
-A maintainer runs `bash omp-port/sync-upstream.sh [<target-sha>]` for the same build locally, target
-defaulting to that newest commit, or `bash omp-port/sync-upstream.sh rebuild` to rebuild at the
-current pin after editing `rules.sed`, `patches/`, or `owned.txt`. A target that never touched
-`pstack/` is refused, because the next run has to find that sha again in the path-filtered history.
-Then run `bash omp-port/check-port.sh` and commit.
+To build the official 0.15.19 target:
 
-There is nothing to resolve. The build never edits an upstream file in place, so upstream text and
-port text cannot collide. A patch that no longer applies exits 1, and that or a gate FAIL leaves the
-PR open for a human with both outputs in the body and the reason printed in the job log.
-
-The gate runs as its own workflow, `gate.yml`, on every pull request and on every push to `main`. A
-PR opened with `github.token` does not trigger `pull_request` workflows, so the sync PR carries the
-gate output in its body and the `push` to `main` run after the merge is the backstop.
-
-Never substitute the `backnotprop/pstack` mirror for upstream.
-
-## Structural changes carried from earlier syncs
-
-These landed in syncs before the current pin and are recorded because each one still constrains what
-the port carries, not as a census of the tree. `omp-port/UPSTREAM` is the only current record.
-
-- **Added** `skills/make-bot-ui/` (webhook-driven Grok Bot UI skill). Listed in the README skill
-  table and installed as a skill here.
-- **Deleted** `skills/poteto-mode/references/plan.md`. Canonical replaced the prose reference with an
-  executable checker, `skills/poteto-mode/scripts/check-plan.mjs`. Both moves are reflected on disk
-  in this port.
-- **Added** `assets/logo.png` plus a `"logo": "assets/logo.png"` field in `.cursor-plugin/plugin.json`.
-  The 353 KiB PNG is **not carried**. It is a Cursor marketplace image with no omp consumer, nothing
-  in omp reads it, and no skill or doc links it. The manifest field is kept so `.cursor-plugin/plugin.json`
-  stays byte-identical to canonical and future drift diffs show only real changes. The consequence is
-  one unresolved relative path inside a file nothing on this machine parses.
-- Canonical also moved Shipping and Autopilot-stack off Graphite merge-when-ready to landing one PR at
-  a time "through GitHub by default or Origin when its CLI is available". That wording is ported into
-  `docs/guide/06-verify-and-ship.md`, `docs/guide/07-overnight.md`, and the README playbook table.
-
-`.cursor-plugin/plugin.json` is kept for upstream fidelity only. omp never reads it. Editing the
-manifest changes no runtime behavior on this machine.
-
-## Install, the two live shapes
-
-`omp plugin link <checkout>/plugins/pstack` is the maintainer shape. It registers the checkout as an
-omp extension root, so the skills load straight out of the working tree and a re-sync is live with no
-relink. That is how this machine runs the port, `~/.omp/plugins/node_modules/pstack` being a symlink
-to `plugins/pstack` in the checkout. The agents load from the same root. Verified 2026-09-09 on omp
-18.1.13 with no agent symlinks present, a fresh `omp -p --no-session` roster listed `poteto-agent`
-and `Comment Sicko` beside `task`. Re-run that probe (it is in `plugins/pstack/README.md`) after an
-omp upgrade rather than trusting this line.
-
-The marketplace install is the user shape.
-
-```
-/marketplace add negoro26/pstack-omp
-/marketplace install pstack@pstack-omp
+```bash
+bash omp-port/sync-upstream.sh e5a02f8fb0409c2db7eb06eae9078b235a2b5009
 ```
 
-That caches the plugin at `~/.omp/plugins/cache/plugins/pstack-omp___pstack___<version>` and links
-it at the same `~/.omp/plugins/node_modules/pstack` path. Verified on omp 18.1.13, 2026-09-07. The
-skills load, `fan-out` and `setup-pstack` enter the `<skills>` block and the rest hide, and the
-`potetomode` extension loads from `package.json` `omp.extensions`, so `--poteto` injects the
-reminder in `-p` mode.
+With no target argument, the script resolves the newest official commit that touched `pstack/`. An explicit target must be a full SHA in that path-filtered history. There is no `build` subcommand.
 
-The agents do not load from a marketplace root. omp scans a marketplace plugin's `agents/` directory
-only through the `claude-plugins` discovery provider, which is off by default
-(`enabledProviders: []`). Turning it on put `poteto-agent` and `Comment Sicko` on the roster and
-also loaded every Claude Code plugin cached under `~/.claude/plugins`, about thirty skill
-descriptions per turn on the machine that measured it. The install therefore adds two symlinks into
-omp's native user root:
+To rebuild the current pin after editing translations, patches, or owned paths:
 
-```
-~/.omp/agent/agents/poteto-agent.md  -> ../../plugins/node_modules/pstack/agents/poteto-agent.md
-~/.omp/agent/agents/comment-sicko.md -> ../../plugins/node_modules/pstack/agents/comment-sicko.md
+```bash
+bash omp-port/sync-upstream.sh rebuild
 ```
 
-Relative through `node_modules/pstack`, so `/marketplace upgrade` retargets them. Verified after
-linking: both names on the `task` roster in a fresh `omp -p --no-session` session, and
-`task agent="poteto-agent"` spawned and returned its one-word reply. If a later omp scans
-marketplace `agents/` natively, the two links become duplicates of the same name and first-wins
-dedup keeps the native-root copy, so they are harmless to leave and safe to delete.
+`rebuild` does not move the pin. It replaces generated output even when that output has uncommitted changes. Owned working-tree edits survive.
 
-Both shapes resolve to the same tree under `~/.omp/plugins/node_modules/pstack/`, which is the
-install path the playbooks name. The retired `~/.omp/pstack` tree exists nowhere, and neither does
-`~/.omp/skills`.
+Set `CANON` to reuse a local `cursor/plugins` checkout. The default is `/tmp/cursor-plugins`, which the script creates from the official repository when needed. Use paths understood by the chosen shell.
 
-Context cost stays low. Most skills set `disable-model-invocation: true`, which omp maps to
-`hide: true`, so only a handful enter the prompt and the rest are read on demand.
+The pin advances only after the build installs and the derived fields are refreshed. The sync script stages its affected plugin files and native package and marketplace metadata. Review those changes before committing. A successful sync is not a passing release gate.
 
-Not ported, and inert on omp, `automations/benny`, which is Cursor Automations plus Bugbot wiring.
+## Run the gates
 
-Treat the port as prose mirrored and mechanics substituted, not as the shipped Cursor plugin
-installed.
+After the complete sync and all owned changes have landed:
 
-## Where the port's changes live
+```bash
+bash omp-port/check-port.sh
+```
 
-`omp-port/rules.sed` is the substitution table, one ordered `sed -E` rule per line, tiered rules for
-the model slugs upstream names first and a catch-all under them whose hits the sync and the gate
-report as `untiered` so they earn a tiered rule. `omp-port/patches/` carries the port's own code as
-unified diffs applied after the rules, which is where a change no substitution can express belongs.
-`skills/omp-mechanics`, listed in `omp-port/owned.txt`, carries the port's prose, so the
-omp-specific levers sit in one skill the injected reminder points every agent at instead of being
-sprinkled through files upstream keeps rewriting.
+The full gate checks the generated tree, including reproducibility, principle and playbook parity, references, routing translations, unsupported mechanics, and derived metadata. You can pass the canonical checkout as its positional argument or set `CANON`.
 
-Known deltas the port mirrors faithfully and will not diverge on. The guide says the verification feature map lives at `references/features` while both trees write `features/`. The guide recommends a daily `/maintain-verification-skill` run while both trees state no cadence.
+If the reproducibility check reports `SKIP`, it has not proved that the tree matches the pin. Restore access to the official checkout and rerun the full gate before release. A failed patch or gate requires a source fix, not a weakened check.
 
-## The one thing that needed new code
+### Real CLI smoke
 
-omp ignores the skill frontmatter keys `mode:` and `reminder:`, which is how Cursor pins
-`/poteto-mode` as a Custom Mode (`Opt+Enter`). That is reproduced natively in
-`~/.omp/agent/extensions/potetomode/index.js` using the pattern proven by the installed `ponytail`
-extension, `appendEntry` to persist, `session_start` plus `getBranch()` to restore,
-`before_agent_start` to inject, and `registerCommand` for `/poteto-mode`.
+With OMP and Node.js on your path, run:
 
-The injected reminder is a pointer, not the playbook. It tells the agent to read
-`skill://poteto-mode` on demand instead of inlining the whole SKILL.md every turn.
+```bash
+node omp-port/smoke-plugin.mjs plugins/pstack "<catalog-model>"
+```
 
-## What omp already does, so pstack's version is redundant
+Replace `<catalog-model>` with a model selector from your local OMP catalog. The argument permits startup. The smoke does not call a provider or start assistant inference.
 
-- **Worktree isolation.** `task.isolation.enabled` gates it. With it on, two concurrent
-  `isolated: true` agents ran in `~/.omp/wt/t<id>/m`, the first patch applied to the main checkout and
-  the second conflicted and was parked at `<session>/Beta.patch` rather than clobbering. Backends,
-  `isolation.backend=auto` (btrfs/reflink/overlayfs COW), `merge=patch|branch`, `apply=true`. The
-  anti-worktree argument about storage cost is about plain `git worktree` copies, and COW clones on
-  this btrfs box do not carry it, so Cursor cloud agents are a bigger machine here rather than a
-  missing capability.
-- **The control CLI's driving surface.** `browser` (CDP, `tab.observe`/`screenshot`/`evaluate`),
-  `computer` (native desktop plus a11y tree), `hub` (`op:start` with `ready:{log,port}` readiness),
-  `debug` (full DAP, breakpoints, eval, stack). A generated `control-<app>` script only needs
-  app-specific semantics, `doctor`, `new-session`, `seed`/auth, `feature-flag`, `wait-settle`.
-- **`swarm` / `arena` / `interrogate`.** One `task` call with a `tasks[]` batch,
-  `task.maxConcurrency=100`, `isolated: true` per candidate, `outputSchema` for judged verdicts.
-- **Never-block.** Subagents run `approvalMode: yolo`, and `proofgate`'s `session_stop` veto is the
-  enforced backstop.
-- **Sibling coordination.** Same-session `hub` `send`, `wait`, and `inbox` ship in the harness and are the sanctioned primitive when workers must coordinate instead of running independent. Pstack never calls them yet. Cross-session messaging does not exist locally and gets no workaround here. It is tracked upstream and stays open.
+The script launches the real OMP CLI in RPC mode with `--no-session`, the supplied plugin path, and the pin extension explicitly loaded. It sets `PI_CONFIG_DIR=.` in a temporary working directory, isolates `PI_CODING_AGENT_DIR`, `HOME`, and `USERPROFILE`, and removes `OMP_PROFILE` and common credential-bearing environment variables.
 
-## Still missing in omp
+It asserts discovery of the five new skills, recorded on/off custom entries and pin toggling within the running process, no assistant inference, and clean exit 0. This is not a disk-persistence or restart-restoration test.
 
-No scheduler. Nothing in omp's docs provides cron, timer, or routine, so an **out-of-session wake** is
-the real gap. A systemd user timer plus `loginctl enable-linger` covers it. That plus a durable queue
-(GitHub issues with `blocked-by:`) is all such a daemon should be. It must not manage worktrees,
-patches, or conflicts, because omp already does.
+The same command can target an installed plugin directory instead of `plugins/pstack`. It does not test marketplace registration, optional agent discovery, model access, or permission enforcement. Report only the checks actually run.
 
-## Next action
+### Local 0.15.19 verification
 
-The verification skill is generated, not ported. Run `/create-verification-skill` inside a real repo,
-which writes `<repo>/.omp/skills/verify-<app>/` (SKILL.md plus control script plus a `features/`
-feature map), then `/maintain-verification-skill` on a schedule. Pick a repo with a runnable UI. A
-React or Vite app with a dev server is the easiest first target.
+These commands were exercised against the local candidate. Paths and the catalog selector below are from the Windows run:
 
-## Switching the model `poteto-agent` runs on
+```bash
+C:/Users/inspire/scoop/apps/git/current/bin/bash.exe omp-port/check-port.sh /c/Projects/pstack-canonical
+node omp-port/worktree-audit.test.mjs C:/Users/inspire/scoop/apps/git/current/bin/bash.exe
+node omp-port/smoke-plugin.mjs plugins/pstack anthropic/claude-sonnet-4-5
+omp cleanse --all "Report syntax diagnostics only for omp-port/smoke-plugin.mjs, omp-port/worktree-audit.test.mjs, and plugins/pstack/skills/poteto-mode/scripts/worktree-session-dirs.mjs using node --check. Do not edit any files, run tests, inspect credentials, change configuration, or broaden the scope."
+```
 
-The published `agents/poteto-agent.md` ships with no `model:` line and inherits the chat model. To
-pin it, add `model: "@poteto"`. That alias expands through `modelRoles` in
-`~/.omp/agent/config.yml`, so one binding rebinds every `poteto-agent` spawn, including a 100-wide
-fan-out. Precedence is `task.agentModelOverrides[poteto-agent]`, then this frontmatter alias, then
-the parent's model.
+From `plugins/pstack/skills/poteto-mode/scripts`, the exercised commands were `bun run test` and `bun run typecheck`.
 
-Set the alias with `/model` or with `omp config set modelRoles '<full json>'`. A dotted key such as
-`modelRoles.poteto` is rejected, so pass the whole record. `inherit-parent` is NOT a usable value
-here; it resolves to `No model selected` and the spawn fails. Bind a real selector.
+- `check-port.sh`: PASS, including generated-artifact reproducibility and metadata parity. Inventory totals remain in the marketplace catalog.
+- Worktree-audit E2E: PASS against real Git worktrees, native OMP session paths, and the audit script. It covers automatic lookup, dotenv/profile precedence, aliases, malformed records, unchanged OMP profile files, and inherited config-overlay isolation. Permission-denial cases, control-character filenames, and POSIX XDG cases were explicitly skipped where Windows could not exercise them. The fixture isolates Git repository settings, hooks, signing, and GitHub CLI configuration.
+- Native RPC smoke: PASS for the five new skills, recorded on/off custom entries, pin toggling, no inference, and clean exit 0.
+- `bun run typecheck`: PASS. Scoped native `omp cleanse --all` ran three passing `node --check` syntax checkers.
+- `bun run test`: 61 passed, 2 failed at `orch/orch.test.ts:422` and `:491`. These pre-existing failures use unchanged upstream `withFakeGt` Bash/shebang fixtures that are not executable as `gt` on native Windows. Those Graphite fixture paths remain unverified here; the suite is not fully green.
 
-Bind it to your strongest judgment model for quality, or to a free local model for wide fan-out. Name
-the selector `omp models` reports on your machine, never a slug from someone else's.
+The user configuration and three installation registries remained hash-identical. These are local verification results, not evidence of fork publication, a live installation, or mode-state restoration after restart.
 
-One finding worth carrying to any local thinking model. Under a small `max_tokens` budget a thinking
-model can spend the whole budget in its reasoning field and return empty content with
-`finish_reason=length`, which makes wide fan-outs unreliable. An OpenAI-compatible proxy in front of
-the endpoint can expose a second model id that sets `chat_template_kwargs.enable_thinking` to false.
-Same weights, thinking template off. Measured on one such deployment with the same prompt shape:
-9/12 with thinking, then 24/24 and 40/40 without. Bind the fan-out alias to that id and keep the
-thinking id for judgment work.
+### Repository automation
 
-## Honest limitations, still open
+The `upstream-sync.yml` workflow defines a daily official-source drift check and a manual trigger. It skips while an open `sync/upstream-` PR exists, checks the current tree before syncing, and captures one target.
 
-- **Graphite is not installed.** `command -v gt` finds nothing on this machine, so every `gt` stack
-  step in Shipping, Babysit, Autopilot-stack and Orchestrate is unexecutable as written. `gh` is
-  installed and authenticated, so single-PR flows work. Canonical now lands through GitHub by
-  default, which reduces the exposure, but the stacking commands still name `gt`.
-- **`isolated: true` is opt-in per spawn, and the gate is open.** `task.isolation.enabled` is `true` in `~/.omp/agent/config.yml`, so the field reaches the task tool instead of being stripped. Two facts verified live. Absent the flag a worker shares the parent checkout, so each swarm brief must request it. And the parent must run from inside a git checkout, since isolated preparation builds a worktree from it. Outside a repo the spawn fails fast with a clear error rather than silently sharing. omp's task tool also rejects `environment`, `cloud_base_branch`, and a per-spawn `model`. Per-spawn model choice is only `task.agentModelOverrides`, keyed by agent name.
-- **The agents have no marketplace path.** The skills and the extension install through the
-  marketplace; `disable-model-invocation: true` maps to `hide` and the extra frontmatter keys
-  (`mode`, `reminder`, `icon`, `color`) are ignored without error. The `agents/` directory is the
-  one surface the marketplace install does not reach without the `claude-plugins` provider, hence
-  the two agent symlinks in the Install section. Nothing needs fixing in the agent files. The install
-  shape is the fix.
-- **The extension is the pin mechanism until a probe says otherwise.** Never read this off a version
-  number, because the binary updates often. Probe it:
+When a sync changes the tree, the workflow opens a PR with sync and gate output. It squash-merges only when both commands succeed. Otherwise, it leaves the PR open with the failure output. Fork workflow activation and repository permissions still govern whether this automation runs.
 
-  ```
-  grep -c -a -F 'Pin or unpin a mode skill' "$(command -v omp)"
-  ```
+Keep this fork's `upstream-sync` workflow disabled unless you explicitly want unattended merging. The local sync command remains available for reviewed updates.
 
-  Zero means omp has no native `mode:` or `reminder:` handling and
-  `~/.omp/agent/extensions/potetomode/index.js` is what pins the mode. Nonzero means omp ships it
-  natively, both injectors will fire and collide, and the extension should be deleted or gated at
-  that point. The same rule applies to every capability in this document. State the probe, not the
-  version.
+`gate.yml` runs `check-port.sh` on pull requests and pushes to `main`. Its separate Ubuntu audit job installs the official OMP 18.10.2 binary, verifies the pinned SHA-256, and runs the native worktree-audit E2E, including POSIX dotenv-selected XDG roots. That job must pass before merging or installing this update. It has read-only repository permission. The download token is scoped to the download step, not the test process.
+
+A PR opened by `github.token` does not trigger a separate pull-request workflow. The sync job's gate and the post-merge push gate provide those checks. These workflows do not run `smoke-plugin.mjs` or verify installed marketplace registration.
+
+## OMP runtime contracts
+
+Read `skill://pstack-omp` before dispatch. That adapter is the dispatch authority. It resolves role names against the live task schema and available agent roster. Optional `poteto-agent` and `comment-sicko` agents are used only when discovered. A fresh agent handles a new work item or fix round unless expensive local state makes reuse necessary.
+
+There is no per-task `model`, `readonly`, or `isolated` field and no `hub` tool. Imported prose is not evidence of a sandbox, a cloud worker, or checkout isolation. Use the adapter's supported dispatch form rather than copying literal fields from Cursor examples.
+
+Use `context` and `tasks[]` only when the live schema exposes them. Otherwise issue standalone flat calls with the required `task` and `solutionSpace` fields. Independent flat calls start before waiting. Do not enable batching to make an example fit. The main agent performs authorized pushes, PR mutations, and merges after the existing gates; children return local changes, evidence, and proposed remote actions.
+
+For processes, use `bash` with a unique service name and readiness criteria when needed. Read status and logs from the returned `proc://<id>`. Stop only a process you own with `write proc://<id>/kill`. For agents, read results from `agent://<id>`, read roster and transcripts through `history://`, and send messages with `write agent://<id>`.
+
+These process and messaging APIs do not provide an out-of-session scheduler. Do not promise a background wake, cross-session continuation, or platform-specific daemon without an available, explicitly authorized mechanism.
+
+Session records can contain credentials and private prompts. Follow `omp-mechanics` and its session-store reference. Read the needed context rather than exporting whole transcripts or configurations.
+
+Worktree-audit discovers session directories automatically for this repository's registered worktrees. A read-only helper resolves the native profile and XDG data root directly, without starting OMP or loading its settings. It derives exact buckets from canonical worktree paths. Temp-relative buckets take precedence over home-relative buckets. Windows ignores XDG. The audit never lists the global sessions root, searches unrelated buckets, migrates buckets, initializes profiles, extracts native caches, or invokes a model. Transcript headers must still belong to a registered worktree. Nonmatching header paths are resolved against canonical worktree paths so junctions, symlinks, and Windows case variants retain their owner.
+
+Automatic lookup requires Node.js with `node:util.parseEnv`, or Bun with that API, Git with `worktree list --porcelain -z`, and the audit's existing Bash, jq, ripgrep, find, and stat utilities. Node.js is preferred. A Node.js version without `parseEnv` fails closed. Bun is used only when Node.js is absent, with `bun run --no-env-file` to disable implicit dotenv loading. A Node.js execution failure never retries through Bun. Production lookup does not require OMP on `PATH`. `PI_CODING_AGENT_SESSION_DIR` remains an optional nonempty exact-directory override that bypasses root lookup. Explicit overrides need a JavaScript runner only when a header path does not exactly match a registered worktree. An unset or empty override selects automatic lookup.
+
+The helper privately parses only the fixed native `.env` locations with `node:util.parseEnv`. Locations are frozen before dotenv application. Precedence is the project, initial agent directory, initial profile config root, then initial home, filling only falsy environment values. Uppercase `OMP_` keys override their `PI_` aliases within each file, not in the inherited launch environment. Only directory, profile, home, and temp selectors are retained. The initial profile stays frozen while directory selectors are refreshed. An explicitly empty `OMP_PROFILE` selects default rather than inheriting `PI_PROFILE`. Windows environment lookup is case-insensitive. Git receives the original inherited environment, never dotenv keys. The helper does not read config YAML, JSON, or databases.
+
+A missing automatic bucket means no recorded files. A missing explicit override, unavailable required runtime, invalid selector, conflicting Windows selector spellings, unreadable or non-file dotenv input, unreadable directory, failed canonicalization, malformed transcript header, or failed search or metadata read makes enrichment unavailable. Windows drive-relative agent overrides are unsupported and fail closed. Affected clean candidates get `LAST_CHAT=unavailable` and `verify-session-unavailable`, not `safe`. An unmatched header whose path cannot be resolved is unverified, not evidence of unrelated ownership. Worktree paths containing control characters and a failed initial Git worktree listing stop the audit without cleanup recommendations. Control characters in session paths or headers also fail closed. Lookup supports the native OMP 18.10 session layout, not historical hashed buckets or custom layouts outside an explicit override.
+
+The entrypoint E2E uses native model-free RPC startup only as a test oracle. It seeds sessions at the actual `get_state` session file path, guarded for containment inside the fixture root. Native startup can write isolated fixture state. The audit itself must leave fresh and legacy profile files and cache directories byte-for-byte unchanged. Fixtures remove inherited `PI_CONFIG_FILES` and `OMP_CONFIG_FILES` case-insensitively before subprocesses. Dotenv-selected roots, profile precedence, and Git isolation have entrypoint cases. POSIX XDG cases run only on Linux or macOS, and permission-denial cases report explicit skips where the host cannot enforce them. These new cases await root verification; the earlier verification record above predates the read-only resolver.
+
+## Models, permissions, and platform limits
+
+The operator chooses the chat model with `/model`. `modelRoles` and `task.agentModelOverrides` are operator-owned routing settings. Keep valid existing choices, unrelated entries, and configuration layers. Setup changes require an explicit request and consent. A denied, timed-out, or unavailable consent step stops that mutation.
+
+The shipped agents are model-free. Do not edit an installed agent to add a Cursor model alias, create a thin agent for every role, reset the routing map, or install provider defaults. `/setup-pstack` uses the current configuration contract. The [model-agnostic convention](omp-port/model-agnostic.md) explains the distinction between a capability and a model selector.
+
+Imported autonomy language does not grant permissions. Repository safety rules, approvals, and operator style take precedence. A read-only brief is an instruction, not a read-only sandbox. `/ketchup` stays read-only and does not start a job to manufacture a result or visual.
+
+GitHub, Origin, Graphite, browser, and desktop workflows depend on tools and access actually available in the session. Report an unavailable capability rather than changing merge policy, granting access, or deploying a service to satisfy a playbook. Verification skills are generated for the application, not supplied as proof that this port works.
+
+## Packaging and mode state
+
+OMP discovery uses `plugins/pstack/package.json` and `.omp-plugin/marketplace.json`. The artifact deliberately omits `plugins/pstack/plugin.json`; no `.cursor-plugin/plugin.json` is shipped or needed. Reading the canonical manifest for its version does not make that manifest part of the OMP package.
+
+On OMP 18.10, a root `plugin.json` selects the exclusive, strict Agent Plugins provider. Its six-field frontmatter schema rejects `disable-model-invocation` and pstack-specific fields, hiding most skills. The real RPC smoke failed with that marker and passed without it. The portable manifest is unsupported for this artifact; keep hidden/manual-invocation metadata rather than stripping it to fit that schema.
+
+The native extension entry remains `omp.extensions` in `plugins/pstack/package.json`. The `potetomode` extension supplies `/poteto-mode` pin controls and a short pointer to the skill. It restores explicit saved on or off state before applying the `--poteto` default. The `--no-session` smoke checks recording and toggling in the running process, not disk persistence or restoration after restart.
+
+## Durable port history
+
+The original port used the `backnotprop/pstack` mirror at `18e0e90` on 2026-08-19. That mirror lagged official `cursor/plugins`. Later syncs moved the port to the official source. Never use the mirror as the current parity baseline.
+
+Earlier official syncs added `make-bot-ui` and replaced `poteto-mode/references/plan.md` with `poteto-mode/scripts/check-plan.mjs`. The executable checker remains upstream-derived. Cursor marketplace image assets and `automations/benny` are not part of the OMP skills-and-agents build.
+
+Older install notes described manual agent symlinks and a Claude-plugin discovery workaround. Those notes are historical, not a requirement to enable broad discovery today. The live roster determines whether an agent is available. Earlier claims about isolation, process hubs, or blanket approval mode do not define the current runtime contract.
+
+The runtime adapter incorporates Daniel Sebban's work from [dsebban/skills](https://github.com/dsebban/skills). The ubranch update retains that credit, negoro26's original port credit, and Lauren Tan's upstream copyright.
+

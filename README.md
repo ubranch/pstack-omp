@@ -1,26 +1,29 @@
 # pstack-omp
 
-An omp marketplace carrying two plugins.
+For a first-time install, run:
 
-`pstack` is Lauren Tan's engineering methodology for Cursor, ported to oh-my-pi and made
-model and provider agnostic, 49 skills with 23 playbooks and 23 principle leaves.
-`fan-out` is a small omp-native skill for wide parallel runs, written from measurement
-rather than doctrine.
-
-```
-/marketplace add negoro26/pstack-omp
-/marketplace install pstack@pstack-omp
-/marketplace install fan-out@pstack-omp
+```bash
+omp plugin marketplace add ubranch/pstack-omp
+omp plugin install pstack@pstack-omp
 ```
 
-The marketplace install loads the skills and the `potetomode` extension. It does not load
-the two agents; see the agent step in `plugins/pstack/README.md`.
+If `pstack-omp` is already registered, follow the [upgrade guide](plugins/pstack/README.md#upgrade) instead. It preserves the registry entry and your model configuration.
 
-`PORTING.md` is the full porting record. `omp-port/check-port.sh` is the gate the port
-passes before any release. Upstream is `cursor/plugins` at the commit named in the catalog.
-Licensed MIT, same as upstream, with Lauren Tan's copyright retained.
+This [ubranch fork](https://github.com/ubranch/pstack-omp) carries Lauren Tan's pstack engineering workflows for oh-my-pi, updated to official pstack 0.15.19. It continues the [original OMP port by negoro26](https://github.com/negoro26/pstack-omp). The separate `fan-out` plugin remains available with `omp plugin install fan-out@pstack-omp`.
 
-The `pstack-omp` runtime adapter incorporates Daniel Sebban's OMP routing work from
-[dsebban/skills](https://github.com/dsebban/skills). It resolves the live task or vibe
-surface without requiring a fixed agent roster. The original scripts remain in place.
-The pin respects saved on/off state before the `--poteto` default on session resume.
+Current skill, playbook, and principle totals are generated into the [marketplace catalog](.omp-plugin/marketplace.json).
+
+Read the [pstack install and upgrade guide](plugins/pstack/README.md) for mode controls, optional agents, and model routing. The 0.15.19 update adds `/ketchup`, `/correct`, `/poteto-help`, `/benchmark-checklist`, and the Explain the Number principle.
+
+The OMP adapter uses the live task schema and agent roster. Read `skill://pstack-omp` before dispatch. Skills do not override your chat model, saved agent routing, permissions, or project safety rules.
+
+For maintainers, [PORTING.md](PORTING.md) describes the official pin, deterministic regeneration, gates, and the real CLI smoke command. [`omp-port/UPSTREAM`](omp-port/UPSTREAM) is the authoritative upstream commit.
+
+OMP discovery uses [`plugins/pstack/package.json`](plugins/pstack/package.json) and the [marketplace catalog](.omp-plugin/marketplace.json). Portable Agent Plugins and Cursor manifest markers are deliberately absent; see the [packaging adaptation](PORTING.md#packaging-and-mode-state).
+
+## Credits and license
+
+Pstack comes from [Lauren Tan's `cursor/plugins/pstack`](https://github.com/cursor/plugins/tree/main/pstack). The runtime adapter incorporates Daniel Sebban's routing work from [dsebban/skills](https://github.com/dsebban/skills). The original OMP port and its attribution remain credited to negoro26.
+
+The fork retains the MIT license and Lauren Tan's copyright. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+

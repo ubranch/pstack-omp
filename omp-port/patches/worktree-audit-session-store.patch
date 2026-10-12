@@ -1,40 +1,346 @@
-# worktree-audit.sh reads the agent transcript store to date each worktree. Cursor keys that
-# store by slugified repo path, under ~/.cursor/projects/<slug>/agent-transcripts. omp keys it
-# by cwd, under $PI_CODING_AGENT_DIR/sessions/<encoded-cwd>. Different shape, so the lookup is
-# code and not a token swap. The same hunk moves stat and date off BSD spellings onto GNU.
 --- a/skills/poteto-mode/scripts/worktree-audit.sh
 +++ b/skills/poteto-mode/scripts/worktree-audit.sh
-@@ -22,9 +22,13 @@
+@@ -11,6 +11,7 @@
+ #   origin/HEAD is the remote's default branch, not necessarily the branch PRs
+ #   merge into; pass -b when they differ.
+ set -u
++script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd) || exit 1
+ 
+ base=""
+ while [ $# -gt 0 ]; do
+@@ -28,7 +29,32 @@
+ git rev-parse --git-dir >/dev/null 2>&1 || { echo "error: not a git repo: $repo" >&2; exit 1; }
+ 
+ # Main worktree is the first entry; everything else is a candidate.
+-main_wt=$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')
++worktree_paths=$(mktemp) || exit 1
++if ! git worktree list --porcelain -z >"$worktree_paths" 2>/dev/null; then
++	rm -f "$worktree_paths"
++	echo "error: worktree discovery unavailable" >&2
++	exit 1
++fi
++owned_worktrees=$(
++	while IFS= read -r -d '' entry; do
++		case "$entry" in
++			"worktree "*) wt=${entry#worktree }
++				case "$wt" in ""|*[[:cntrl:]]*) exit 1 ;; esac
++				printf '%s\n' "$wt" ;;
++		esac
++	done <"$worktree_paths"
++) || { rm -f "$worktree_paths"; echo "error: unsupported worktree path" >&2; exit 1; }
++locked_worktrees=$(
++	while IFS= read -r -d '' entry; do
++		case "$entry" in
++			"worktree "*) wt=${entry#worktree } ;;
++			locked|"locked "*) printf '%s\n' "$wt" ;;
++		esac
++	done <"$worktree_paths"
++)
++rm -f "$worktree_paths"
++[ -n "$owned_worktrees" ] || { echo "error: worktree discovery unavailable" >&2; exit 1; }
++main_wt=${owned_worktrees%%$'\n'*}
+ 
+ if [ -z "$base" ]; then
+ 	for cand in "$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)" origin/main origin/master; do
+@@ -52,15 +78,56 @@
  gh pr list --author "@me" --state all --limit 1000 \
  	--json number,state,headRefName 2>/dev/null > "$prs" || echo "[]" > "$prs"
  
--# Transcripts dir: ~/.omp/projects/<slugified-repo-path>/agent-transcripts.
+-# Transcripts dir: ~/.cursor/projects/<slugified-repo-path>/agent-transcripts.
 -slug=$(printf '%s' "$main_wt" | sed 's#^/##; s#/#-#g')
 -transcripts="$HOME/.cursor/projects/$slug/agent-transcripts"
-+# omp keys each session tree by cwd, the path with $HOME stripped and "/" rewritten as "-". A
-+# chat launched inside a worktree lands in that worktree's own bucket, so scan both and nothing
-+# else; walking every bucket scales with total omp history instead of this repo's.
-+sessions="${PI_CODING_AGENT_DIR:-$HOME/.omp/agent}/sessions"
-+bucket() { printf '%s/%s' "$sessions" "$(printf '%s' "${1#"$HOME"}" | sed 's#/#-#g')"; }
-+repo_bucket=$(bucket "$main_wt")
-+[ -d "$repo_bucket" ] || repo_bucket="$sessions"
++sessions="${PI_CODING_AGENT_SESSION_DIR:-}"
++session_files=$(mktemp) || exit 1
++session_paths=$(mktemp) || { rm -f "$prs" "$session_files"; exit 1; }
++runner=()
++if command -v node >/dev/null 2>&1; then runner=(node)
++elif command -v bun >/dev/null 2>&1; then runner=(bun run --no-env-file); fi
++worktrees=()
++while IFS= read -r wt; do worktrees+=("$wt"); done <<<"$owned_worktrees"
++session_status=available
++if [ -n "$sessions" ]; then
++	case "$sessions" in *[[:cntrl:]]*) session_status=unavailable ;; -*) sessions="./$sessions" ;; esac
++	[ "$session_status" = available ] && [ -d "$sessions" ] &&
++		find -H "$sessions" -type f -name '*.jsonl' -print0 >"$session_paths" 2>/dev/null || session_status=unavailable
++else
++	if [ "${#runner[@]}" -gt 0 ] && session_dirs=$("${runner[@]}" "$script_dir/worktree-session-dirs.mjs" 2>/dev/null); then
++		if [ -n "$session_dirs" ]; then
++			while IFS= read -r directory; do
++				find -H "$directory" -type f -name '*.jsonl' -print0 >>"$session_paths" 2>/dev/null || { session_status=unavailable; break; }
++			done <<<"$session_dirs"
++		fi
++	else
++		session_status=unavailable
++	fi
++fi
++if [ "$session_status" = available ]; then
++	while IFS= read -r -d '' f; do
++		case "$f" in *[[:cntrl:]]*) session_status=unavailable; break ;; esac
++		cwd=$(set -o pipefail; head -n 2 "$f" |
++			jq -ers 'map(select(.type == "session")) | first | .cwd | select(type == "string" and length > 0 and (test("[[:cntrl:]]") | not))') 2>/dev/null || { session_status=unavailable; break; }
++		printf '%s\n' "$owned_worktrees" | grep -qxF -- "$cwd"
++		case $? in
++			0) ;;
++			1)
++				if [ "${#runner[@]}" -eq 0 ] || ! cwd=$("${runner[@]}" "$script_dir/worktree-session-dirs.mjs" --owner "$cwd" "${worktrees[@]}" 2>/dev/null); then
++					session_status=unavailable; break
++				fi
++				[ -n "$cwd" ] || continue ;;
++			*) session_status=unavailable; break ;;
++		esac
++		mtime=$(stat -c '%Y' "$f" 2>/dev/null || stat -f '%m' "$f" 2>/dev/null) || { session_status=unavailable; break; }
++		printf '%s\t%s\t%s\n' "$cwd" "$f" "$mtime" >>"$session_files" || { session_status=unavailable; break; }
++	done <"$session_paths" || session_status=unavailable
++fi
++[ "$session_status" = available ] || echo "warn: session enrichment unavailable; check OMP lookup, session access, and runtime prerequisites" >&2
  now=$(date +%s)
  
+ echo "# base: $base"
  printf "SIZE\tAGE\tMERGED\tDIRTY\tREMOTE\tPR\tLAST_CHAT\tBUCKET\tWORKTREE\n"
-@@ -63,11 +67,12 @@
- 	# Most recent chat whose transcript operated in this worktree. Match path
- 	# followed by "/" or a quote so glint-482 does not match glint-482-r37.
+ 
+-git worktree list --porcelain | awk '/^worktree /{print $2}' | while read -r wt; do
++printf '%s\n' "$owned_worktrees" | while IFS= read -r wt; do
+ 	[ "$wt" = "$main_wt" ] && continue
+ 
+ 	size=$(du -sh "$wt" 2>/dev/null | awk '{print $1}')
+@@ -73,8 +140,8 @@
+ 	git merge-base --is-ancestor "$head" "$base" 2>/dev/null && merged=YES || merged=no
+ 
+ 	# Distinguish real WIP (tracked edits) from disposable untracked scratch.
+-	porcelain=$(git -C "$wt" status --porcelain 2>/dev/null)
+-	if [ -z "$porcelain" ]; then dirty=clean
++	if ! porcelain=$(git -C "$wt" status --porcelain 2>/dev/null); then dirty=error
++	elif [ -z "$porcelain" ]; then dirty=clean
+ 	elif printf '%s\n' "$porcelain" | grep -qv '^??'; then
+ 		dirty="wip:$(printf '%s\n' "$porcelain" | grep -cv '^??')"
+ 	else dirty="scratch:$(printf '%s\n' "$porcelain" | grep -c '^??')"; fi
+@@ -91,27 +158,50 @@
+ 		'.[] | select(.headRefName==$b) | "#\(.number)/\(.state)"' "$prs" 2>/dev/null | head -1)
+ 	[ -z "$pr" ] && pr="-"
+ 
+-	# Most recent chat whose transcript operated in this worktree. Match path
+-	# followed by "/" or a quote so glint-482 does not match glint-482-r37.
++	# Match a path separator or closing quote, not a sibling's shared prefix.
++	chat_paths=(-e "${wt}/" -e "${wt}\"")
++	case "$wt" in [[:alpha:]]:/*)
++		windows_wt=${wt//\//\\\\}
++		chat_paths+=(-i -e "${windows_wt}\\\\" -e "${windows_wt}\"") ;;
++	esac
  	last="-"; last_ts=0
 -	if [ -d "$transcripts" ]; then
 -		f=$(rg -l -e "${wt}/" -e "${wt}\"" "$transcripts" 2>/dev/null \
 -			| xargs stat -f '%m %N' 2>/dev/null | sort -rn | head -1)
-+	wt_bucket=$(bucket "$wt"); [ -d "$wt_bucket" ] || wt_bucket="$repo_bucket"
-+	if [ -d "$repo_bucket" ]; then
-+		f=$(rg -l -e "${wt}/" -e "${wt}\"" "$repo_bucket" "$wt_bucket" 2>/dev/null \
-+			| xargs -r stat -c '%Y %n' 2>/dev/null | sort -rn | head -1)
- 		if [ -n "$f" ]; then last_ts=$(echo "$f" | awk '{print $1}')
+-		if [ -n "$f" ]; then last_ts=$(echo "$f" | awk '{print $1}')
 -			last=$(date -r "$last_ts" '+%Y-%m-%d' 2>/dev/null); fi
-+			last=$(date -d @"$last_ts" '+%Y-%m-%d' 2>/dev/null); fi
++	chat_status=$session_status
++	if [ "$chat_status" = available ]; then
++		while IFS=$'\t' read -r cwd f mtime; do
++			if [ "$cwd" != "$wt" ]; then
++				[ "$cwd" = "$main_wt" ] || continue
++				rg -F "${chat_paths[@]}" "$f" >/dev/null 2>&1
++				case $? in
++					0) ;;
++					1) continue ;;
++					*) chat_status=unavailable; break ;;
++				esac
++			fi
++			if [ "$mtime" -gt "$last_ts" ]; then last_ts="$mtime"; fi
++		done <"$session_files" || chat_status=unavailable
++	fi
++	if [ "$chat_status" != available ]; then
++		last=unavailable
++	elif [ "$last_ts" -gt 0 ]; then
++		last=$(date -d @"$last_ts" '+%Y-%m-%d' 2>/dev/null || date -r "$last_ts" '+%Y-%m-%d' 2>/dev/null) || { chat_status=unavailable; last=unavailable; }
  	fi
  	recent=$([ "$last_ts" -gt 0 ] 2>/dev/null && [ $(( (now - last_ts) / 86400 )) -le 4 ] && echo yes || echo no)
  
+-	case "$dirty" in wip:*) bucket=hold-wip ;; *)
+-		case "$pr" in *OPEN*) bucket=hold-open-pr ;; *)
+-			if [ "$recent" = yes ]; then bucket=verify-recent-chat
+-			elif [ "$merged" = YES ] || [ "$pr" != "-" ]; then bucket=safe
+-			else bucket=review; fi ;;
+-		esac ;;
+-	esac
++	if [ "$dirty" = error ]; then bucket=hold-error
++	elif printf '%s\n' "$locked_worktrees" | grep -qxF -- "$wt"; then bucket=hold-locked
++	else
++		case "$dirty" in wip:*) bucket=hold-wip ;; *)
++			case "$pr" in *OPEN*) bucket=hold-open-pr ;; *)
++				if [ "$chat_status" != available ]; then bucket=verify-session-unavailable
++				elif [ "$recent" = yes ]; then bucket=verify-recent-chat
++				elif [ "$merged" = YES ] || [ "$pr" != "-" ]; then bucket=safe
++				else bucket=review; fi ;;
++			esac ;;
++		esac
++	fi
+ 
+ 	printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+ 		"$size" "$age" "$merged" "$dirty" "$remote" "$pr" "$last" "$bucket" "$wt"
+ done | sort -t$'\t' -k1,1 -rh
+ 
+-rm -f "$prs"
++rm -f "$prs" "$session_files" "$session_paths"
+--- /dev/null
++++ b/skills/poteto-mode/scripts/worktree-session-dirs.mjs
+@@ -0,0 +1,161 @@
++import { execFileSync } from "node:child_process";
++import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
++import { homedir, tmpdir } from "node:os";
++import path from "node:path";
++import * as util from "node:util";
++
++function safePath(value) {
++	if (!value || /[\x00-\x1f\x7f-\x9f]/u.test(value)) throw new Error();
++	return value;
++}
++
++function canonicalPath(value) {
++	if (!path.isAbsolute(safePath(value))) throw new Error();
++	return safePath(realpathSync(value));
++}
++
++function existingDirectory(directory) {
++	try {
++		lstatSync(directory);
++	} catch (error) {
++		if (error.code !== "ENOENT") throw error;
++		const parent = path.dirname(directory);
++		if (parent === directory) throw error;
++		existingDirectory(parent);
++		return false;
++	}
++	if (!statSync(directory).isDirectory()) throw new Error();
++	return true;
++}
++
++function profileName(value = "") {
++	if (/[\x00-\x1f\x7f-\x9f]/u.test(value)) throw new Error();
++	const name = value.trim();
++	if (!name || name === "default") return "";
++	if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(name) || name.endsWith(".") ||
++		/^(?:CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(?:\..*)?$/i.test(name)) throw new Error();
++	return name;
++}
++
++function sessionRoot() {
++	if (typeof util.parseEnv !== "function") throw new Error();
++	const envKey = (key) => process.platform === "win32" ? key.toUpperCase() : key;
++	const selectors = new Set([
++		"PI_CONFIG_DIR", "PI_CODING_AGENT_DIR", "OMP_PROFILE", "PI_PROFILE", "XDG_DATA_HOME",
++		"HOME", "USERPROFILE", "TMPDIR", "TMP", "TEMP", "SystemRoot", "windir",
++	].map(envKey));
++	const selected = Object.create(null);
++	for (const [key, value] of Object.entries(process.env)) {
++		const name = envKey(key);
++		if (!selectors.has(name)) continue;
++		if (selected[name] !== undefined && selected[name] !== value) throw new Error();
++		selected[name] = value;
++	}
++	const profile = profileName(selected.OMP_PROFILE ?? selected.PI_PROFILE);
++	const profileParts = profile ? ["profiles", profile] : [];
++	const agentPaths = () => {
++		const configRoot = path.join(safePath(homedir()), safePath(selected.PI_CONFIG_DIR || ".omp"));
++		const config = path.join(configRoot, ...profileParts);
++		const defaultAgent = path.join(config, "agent");
++		let override = selected.PI_CODING_AGENT_DIR;
++		let inheritedProfile = "";
++		// Native ignores invalid lower-priority profile hints.
++		try { inheritedProfile = profileName(selected.PI_PROFILE); } catch { }
++		if (inheritedProfile && override === path.join(configRoot, "profiles", inheritedProfile, "agent")) override = undefined;
++		if (!profile && override && process.platform === "win32" && /^[a-z]:($|[^\\/])/i.test(override)) throw new Error();
++		const agent = !profile && override ? path.resolve(safePath(override)) : defaultAgent;
++		return { config, agent, defaultAgent };
++	};
++	const initial = agentPaths();
++	const files = [
++		path.join(process.cwd(), ".env"), path.join(initial.agent, ".env"),
++		path.join(initial.config, ".env"), path.join(safePath(homedir()), ".env"),
++	];
++	for (const file of files) {
++		try {
++			lstatSync(file);
++		} catch (error) {
++			if (error.code !== "ENOENT") throw error;
++			existingDirectory(path.dirname(file));
++			continue;
++		}
++		if (!statSync(file).isFile()) throw new Error();
++		const parsed = util.parseEnv(readFileSync(file, "utf8"));
++		const values = Object.create(null);
++		for (const [key, value] of Object.entries(parsed)) {
++			const alias = key.startsWith("OMP_") ? `PI_${key.slice(4)}` : key;
++			if ((selectors.has(envKey(key)) || selectors.has(envKey(alias))) &&
++				/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) && !value.includes("\0")) values[key] = value;
++		}
++		for (const key of Object.keys(values)) {
++			if (key.startsWith("OMP_")) values[`PI_${key.slice(4)}`] = values[key];
++		}
++		const retained = Object.create(null);
++		for (const [key, value] of Object.entries(values)) {
++			const name = envKey(key);
++			if (!selectors.has(name)) continue;
++			if (retained[name] !== undefined && retained[name] !== value) throw new Error();
++			retained[name] = value;
++		}
++		for (const [key, value] of Object.entries(retained)) {
++			if (!selected[key]) selected[key] = value;
++		}
++	}
++	// Only OS path selectors reach this process's os helpers. Git keeps its inherited environment.
++	for (const key of ["HOME", "USERPROFILE", "TMPDIR", "TMP", "TEMP", "SystemRoot", "windir"]) {
++		if (selected[envKey(key)] !== undefined) process.env[key] = selected[envKey(key)];
++	}
++	profileName(selected.OMP_PROFILE ?? selected.PI_PROFILE);
++	const { agent, defaultAgent } = agentPaths();
++	let base = agent;
++	if ((process.platform === "linux" || process.platform === "darwin") && agent === defaultAgent && selected.XDG_DATA_HOME) {
++		const xdg = path.join(safePath(selected.XDG_DATA_HOME), "omp", ...profileParts);
++		if (existingDirectory(xdg)) base = xdg;
++	}
++	return path.resolve(base, "sessions");
++}
++
++function sessionDirectories() {
++	const options = { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 30000, env: { ...process.env } };
++	const sessions = sessionRoot();
++	const home = safePath(homedir());
++	const temp = safePath(tmpdir());
++	const canonicalHome = canonicalPath(home);
++	const canonicalTemp = canonicalPath(temp);
++	const listing = execFileSync("git", ["worktree", "list", "--porcelain", "-z"], options);
++	if (!listing.endsWith("\0\0")) throw new Error();
++	const directories = new Set();
++	for (const record of listing.slice(0, -2).split("\0\0")) {
++		const field = record.split("\0")[0];
++		if (!field.startsWith("worktree ")) throw new Error();
++		const cwd = canonicalPath(field.slice(9));
++		const inTemp = path.relative(canonicalTemp, cwd);
++		const inHome = path.relative(canonicalHome, cwd);
++		const within = (relative) => !relative.startsWith("..") && !path.isAbsolute(relative);
++		let key;
++		if (within(inTemp)) key = inTemp ? "-tmp-" + inTemp.replace(/[/\\:]/g, "-") : "-tmp";
++		else if (within(inHome)) key = "-" + inHome.replace(/[/\\:]/g, "-");
++		else key = "--" + cwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-") + "--";
++		const directory = safePath(path.join(sessions, key));
++		if (existingDirectory(directory)) directories.add(directory);
++	}
++	return [...directories];
++}
++
++try {
++	let directories;
++	if (process.argv[2] === "--owner") {
++		const cwd = canonicalPath(process.argv[3]);
++		const worktrees = process.argv.slice(4);
++		if (!worktrees.length) throw new Error();
++		const canonicalWorktrees = worktrees.map(canonicalPath);
++		const index = canonicalWorktrees.findIndex((worktree) => path.relative(worktree, cwd) === "");
++		directories = index < 0 ? [] : [safePath(worktrees[index])];
++	} else {
++		if (process.argv.length !== 2) throw new Error();
++		directories = sessionDirectories();
++	}
++	if (directories.length) process.stdout.write(directories.map((directory) => process.platform === "win32" ? directory.replaceAll("\\", "/") : directory).join("\n") + "\n");
++} catch {
++	process.exitCode = 1;
++}
