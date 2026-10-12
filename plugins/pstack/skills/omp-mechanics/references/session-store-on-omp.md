@@ -1,73 +1,37 @@
-# The omp session store on disk
+# OMP session history
 
-Amends **recall, reflect, eval, session-pickup, show-me-your-work, automate-me** in `SKILL.md`. Read
-this before globbing for a transcript. Every path below came off a live store, so list a real bucket
-before trusting this file after an upgrade.
+This reference supports recall, reflect, eval, session-pickup, show-me-your-work, and automate-me. Session history can contain private prompts, tool output, and secrets. Access remains limited to the session and project the user authorized.
 
-## The root
+## Internal resources
 
-Resolved, not fixed. The default is `~/.omp/agent/sessions/`. `PI_CODING_AGENT_SESSION_DIR` and an
-explicit session-directory argument win, then `PI_CODING_AGENT_DIR` for the default profile, then
-the profile root under `PI_CONFIG_DIR`, then `XDG_DATA_HOME`, which redirects only when its `omp`
-root already exists. Resolve it once instead of hardcoding it.
+For registered agents, `history://` lists their status and parent. `history://<id>:1-50` reads a bounded transcript range. `agent://<id>` reads the output artifact. Use returned identifiers, including dotted child IDs, rather than constructing them from directory names. Structured fields use the live resource's documented path syntax.
 
-## The bucket name
+These resources are preferable to disk searches when they expose the required history. A registry entry or old transcript timestamp does not prove that a worker is still running. `skill://pstack-omp` owns live status and messaging mechanics. Do not inspect unrelated agents merely because the registry lists them.
 
-One bucket per canonicalized cwd, so two symlinked spellings of one directory share a bucket.
+## Session root and project bucket
 
-- A cwd under `$HOME` becomes the home-relative path with each `/` rewritten to `-`. The leading
-  separator survives as a leading hyphen, so `/home/you/Desktop/proj` is `-Desktop-proj` and
-  `/home/you/.omp/pstack` is `-.omp-pstack`.
-- A cwd under the temp root becomes `-tmp-<rest>`.
-- Anything else becomes `--<encoded-absolute>--`.
+The default root is `~/.omp/agent/sessions/`, but the active profile or environment can relocate it. An explicit session directory or `PI_CODING_AGENT_SESSION_DIR` can select a different root. `PI_CODING_AGENT_DIR`, profile configuration, and supported XDG roots can also affect the default. Resolve the active store before globbing. Do not infer a Windows path from a POSIX example or assume every host uses the default profile.
 
-Two distinct paths that encode identically share one bucket, and 18.2.0 adds no digest to separate
-them. A short-lived hashed scheme, `<scope>-<basename>-<sha256>`, shipped in 17.2.5 and was
-reverted in 17.2.9. Old buckets in that form are migrated back to path-encoded names on access, so a
-store with history may still show one.
+Buckets use the canonicalized working directory, so symlinked spellings can share a bucket. In the path-encoded layout:
 
-## The files
+- A home-relative path has its separators replaced with hyphens, preserving a leading hyphen.
+- A temporary-root path uses `-tmp-<rest>`.
+- Other paths use `--<encoded-absolute>--`.
 
-One flat transcript per session, `<timestamp>_<session-id>.jsonl`. The timestamp is ISO-8601 with
-its colons and its millisecond dot rewritten to hyphens, because a colon is path-hostile. A real
-name, verbatim:
+Some older stores have hashed bucket names. Encoded names can also collide. Confirm the transcript header's `cwd` matches the authorized project rather than trusting a bucket name. Search only that confirmed bucket, never sibling project buckets or the whole session root.
 
-```
-2026-09-08T08-48-08-964Z_01a08034-0904-74d7-ad70-398d79c17e89.jsonl
-```
+## Transcript and artifact files
 
-A sibling directory named with the same stem and no `.jsonl` is that session's artifact namespace.
-It holds one `<AgentId>.jsonl` sidecar per direct child, each child's final output as `<AgentId>.md`
-and `<AgentId>.json`, the `local://` scratch root, and one subdirectory per child that spawned
-further. Files in those subdirectories carry the full dotted id:
+A transcript is a flat `<timestamp>_<session-id>.jsonl` file. Timestamp colons and the millisecond dot become hyphens for filesystem compatibility. Its sibling directory with the same stem is the artifact namespace.
 
-```
-<stem>/SliceA.jsonl
-<stem>/SliceA.md
-<stem>/Maintainer/Maintainer.SrcNav.jsonl
-```
+That directory can contain child JSONL transcripts, final Markdown and JSON outputs, session-local scratch artifacts, and nested child directories. Nested files can carry full dotted agent IDs. The current runtime and actual directory listing determine what is available. An artifact's presence does not grant access beyond the authorized scope.
 
-## Reading a transcript
+## Transcript records
 
-Line 1 is a fixed-width 256-byte `type:title` slot, padded with spaces so a retitle rewrites in
-place. It is not a message, and its title can diverge from the header's; the slot's title is the
-live one. Line 2 is the `type:session` header carrying `id`, `timestamp`, `cwd`, and `title`. A
-legacy file may start at the header.
+A current transcript begins with a padded, fixed-width `type: title` record. It is not a message. The following `type: session` header carries the session ID, timestamp, cwd, and title. Legacy transcripts may begin at that header. The title record can differ from the header title.
 
-To find the session that ran a given conversation, scan for the first `type:message` line with
-`role:user` and match its text. Persisted roles are camelCase. A scan for `tool_result` finds
-nothing, because the role is `toolResult`, and `toolCall` is a content block inside an assistant
-message rather than a role.
+User turns are `type: message` records with `role: user`. Persisted tool-result roles use `toolResult`, not `tool_result`. `toolCall` is an assistant content block, not a role. Match the actual user message when identifying a prior conversation. Agent results and notifications are not user turns.
 
-`/clear` appends a durable `reset_boundary` entry. The model's context starts after the latest
-boundary, but the file still holds everything before it, so a pickup reading the raw JSONL sees
-material the previous agent could no longer see.
+`/clear` appends a durable `reset_boundary`. Current model context begins after the latest boundary, while the raw file still contains earlier material. Keep a pickup within the requested scope and boundary. Earlier records require explicit historical scope and must not be presented as the current conversation.
 
-## Prefer the URIs
-
-For a prior agent in this process, the internal URIs beat globbing. Bare `history://` lists every
-agent with its status and its parent. `history://<id>` renders one transcript and takes line
-selectors, as in `history://<id>:1-50`. `agent://<id>` serves that agent's final output artifact,
-`agent://<parent>/<child>` a nested child's, and `agent://<id>?q=.<field>` one field of a structured
-result. Prefer `?q=` for a field, because the slash resolves a child agent first and only falls back
-to JSON extraction.
+Use bounded reads and quote only the evidence needed for the task. Exclude secrets from reports and shared artifacts. Do not modify, retitle, migrate, or delete history during a read-only investigation or status request.

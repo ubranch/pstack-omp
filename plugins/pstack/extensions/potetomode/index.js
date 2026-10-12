@@ -109,12 +109,13 @@ export default function potetomode(pi) {
     handler: (ctx) => setPinned(!pinned, ctx),
   });
 
-  pi.on("session_start", async (_event, ctx) => {
-    const entries = ctx.sessionManager.getBranch();
-    pinned = restore(entries) ?? pi.getFlag?.("poteto") === true;
+  // Every session change re-reads the now-current branch; a new chat has no entry and falls back to the flag.
+  const reload = async (_event, ctx) => {
+    pinned = restore(ctx.sessionManager.getBranch()) ?? pi.getFlag?.("poteto") === true;
     isActive = false;
     syncStatus(ctx);
-  });
+  };
+  for (const event of ["session_start", "session_switch", "session_branch", "session_tree"]) pi.on(event, reload);
 
   pi.on("agent_start", async (_event, ctx) => {
     isActive = true;

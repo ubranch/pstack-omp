@@ -1,49 +1,85 @@
 # pstack for oh-my-pi
 
-Lauren Tan's pstack methodology, ported to omp. 49 skills, 23 playbooks, 23 principle
-leaves, the `poteto-mode` pin, and the `poteto-agent` and `comment-sicko` agents.
-47 skills are built from upstream; `omp-mechanics` and `pstack-omp` are port adapters.
+Install the ubranch fork from your terminal:
 
-## Install
-
-```
-/marketplace add negoro26/pstack-omp
-/marketplace install pstack@pstack-omp
+```bash
+omp plugin marketplace add ubranch/pstack-omp
+omp plugin install pstack@pstack-omp
 ```
 
-That loads the 49 skills and the `potetomode` extension. The two agents are optional.
-On omp 18.1.13 a marketplace plugin's `agents/` directory is scanned only through the
-`claude-plugins` discovery provider, and enabling that provider also loads every Claude Code
-plugin cached under `~/.claude/plugins`. Link the agents into omp's native root instead:
+This is Lauren Tan's pstack methodology for OMP, updated to official pstack 0.15.19. It continues [negoro26's original port](https://github.com/negoro26/pstack-omp). Upstream workflows, scripts, and MIT attribution remain part of the port.
 
+## Start a task
+
+1. Restart OMP after installation so the new process loads the updated plugin.
+2. Run `/poteto-mode on` to pin the workflow. Give it a goal and a check that can pass or fail.
+3. Run `/poteto-mode off` when you no longer want the workflow pinned.
+
+The `potetomode` extension handles these commands and restores saved state when you resume, switch, branch, or start a new chat. Explicit saved on or off state takes precedence over the `--poteto` startup default.
+
+OMP runs every other pstack skill as `/skill:<name>`, for example `/skill:poteto-help`. A bare `/ketchup` is sent as plain text. Upstream docs and skills write the bare form; add the `skill:` prefix when you type it.
+
+`/skill:setup-pstack` is optional. Use it when you want to inspect or change model routing. It preserves valid `modelRoles`, `task.agentModelOverrides`, unrelated settings, and permission choices. Changes require your request and consent. The shipped agents inherit the chat model unless you configure an override.
+
+## Upgrade
+
+For an existing ubranch marketplace registration:
+
+```bash
+omp plugin marketplace update pstack-omp
+omp plugin upgrade pstack@pstack-omp
 ```
-mkdir -p ~/.omp/agent/agents
-ln -s ../../plugins/node_modules/pstack/agents/poteto-agent.md  ~/.omp/agent/agents/poteto-agent.md
-ln -s ../../plugins/node_modules/pstack/agents/comment-sicko.md ~/.omp/agent/agents/comment-sicko.md
+
+If your `pstack-omp` marketplace still points to negoro26:
+
+1. Copy `~/.omp/marketplaces.json` to a backup file.
+2. In the entry whose `name` is `pstack-omp`, change only `sourceUri` to `ubranch/pstack-omp`. Preserve every other entry and field.
+3. Refresh the registration and upgrade:
+
+```bash
+omp plugin marketplace update pstack-omp
+omp plugin upgrade pstack@pstack-omp
 ```
 
-`node_modules/pstack` is the symlink the marketplace install maintains, so `/marketplace upgrade`
-moves the agents with it. Check with a fresh session:
+Adding the same marketplace name again fails. A targeted registry edit avoids removing the existing registration. The marketplace name remains `pstack-omp`, and the plugin ID remains `pstack@pstack-omp`.
 
-```
-omp -p --no-session --thinking off "Do not call any tool. List every agent name in the task tool's Available Agents section."
-```
+To preview a forced reinstall, use `omp plugin install pstack@pstack-omp --force --dry-run`. Only `install` supports `--dry-run`. Use `omp plugin install pstack@pstack-omp --force` if a reinstall is needed.
 
-Use these optional agents only when the live roster lists them; otherwise the adapter maps the role to an available worker.
+Keep any local plugin edits before upgrading. Do not delete or replace `~/.omp/agent/config.yml` during this migration.
 
-Then `/poteto-mode on`, or `alt+shift+t`, or `omp -p --poteto '...'` for headless runs.
+Restart the OMP process after upgrading. A new chat inside an already-running process may still use the old plugin. Optional `poteto-agent` and `comment-sicko` agents are used only when the live task roster lists them. Agent discovery depends on the OMP version and installation route. The adapter can use another available worker when these agents are absent. Do not enable a broad discovery provider or change permissions just to make an optional agent appear.
 
-## What differs from upstream
+## New in the 0.15.19 update
 
-Every Cursor mechanic is substituted for its omp equivalent. Cloud agents become
-`isolated: true` subagents. `/loop` wake becomes a `hub` supervised watcher. Cursor
-transcripts become `~/.omp/agent/sessions/`. No skill names a vendor model. Name a
-capability, bind it once in `modelRoles`, pick the chat model with `/model`.
+- `/skill:ketchup` catches you up on the current chat and separates results from decisions waiting on you. It is read-only.
+- `/skill:correct` turns repeated mistakes into architectural, type, lint, or test checks that fail on a real past mistake.
+- `/skill:poteto-help` routes setup and usage questions to the relevant skills without spending tokens on an implementation run.
+- `/skill:benchmark-checklist` checks errors, repeatability, production settings, limits, and whether the measured work happened before you report a performance number.
+- `/skill:principle-explain-the-number` requires evidence for what limits a measured number and what else the measurement could mean.
 
-`PORTING.md` at the repo root records every substitution and the re-sync procedure.
+The existing playbooks and executable scripts remain upstream-derived. Skill, playbook, and principle counts are generated into the [marketplace description](../../.omp-plugin/marketplace.json) by the sync script, not maintained in this README.
 
-## Model for the agent
+## What differs from Cursor
 
-`poteto-agent` ships model-free and inherits your chat model. To pin it, add
-`model: "@poteto"` to the agent file and bind `poteto` in `modelRoles`. An unbound
-alias fails the spawn, so bind before you add. `/setup-pstack` walks through it.
+The port adapts mechanics instead of promising every Cursor feature on OMP. It has three port-owned skills:
+
+| Skill | Responsibility |
+|---|---|
+| [`pstack-omp`](skills/pstack-omp/SKILL.md) | Dispatch, agent lifecycle, processes, and messaging through the live OMP tool schema and roster. |
+| [`omp-mechanics`](skills/omp-mechanics/SKILL.md) | Platform amendments, session privacy, approvals, unavailable capabilities, and operator style precedence. |
+| [`setup-pstack`](skills/setup-pstack/SKILL.md) | Inspect selected routing keys and make only explicitly requested, consented changes. |
+
+Read `skill://pstack-omp` before dispatch. There is no per-task `model`, `readonly`, or `isolated` field, and no `hub` tool. A role or permission instruction in a brief is not a sandbox guarantee. Model routing belongs in the operator's configuration, not a Cursor model rule or a copied tool argument.
+
+Named processes use `bash` and returned `proc://` IDs. Agent messages use `write agent://<id>`, and transcripts use `history://`. These APIs do not provide an out-of-session scheduler. Do not promise a cloud worker, isolated checkout, cross-session wake, or automatic deployment when the live environment cannot provide it.
+
+Project safety rules, approval requirements, and your style settings override imported prose. Use only available platform tools. Windows maintainers need native Git Bash for the port scripts, not a WSL shell pointed at the Windows OMP installation.
+
+## Maintain the port
+
+[`PORTING.md`](../../PORTING.md) describes the pinned official source, deterministic regeneration, and the real CLI smoke command. Generated skills and agents are not maintained by hand. Changes belong in the translation rules, a focused patch, or one of the three owned skill directories.
+
+OMP uses `package.json` and the root [marketplace catalog](../../.omp-plugin/marketplace.json), not a shipped `plugin.json` or `.cursor-plugin/plugin.json`. Keep the native package format; the [packaging adaptation](../../PORTING.md#packaging-and-mode-state) explains why the portable manifest is unsupported.
+
+See the root [LICENSE](../../LICENSE) and [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) for Lauren Tan's upstream license, the original port attribution, and Daniel Sebban's routing contribution.
+

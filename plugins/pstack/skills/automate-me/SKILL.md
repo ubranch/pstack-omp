@@ -14,7 +14,7 @@ This skill orchestrates three others: an inline mining pass (see step 1), the `a
 
 ### 0. Check for an existing skill
 
-Look recursively for `.omp/skills/**/*-mode/SKILL.md` and `~/.omp/agent/skills/*-mode/SKILL.md` matching the user's handle. Mode skills can live in a personal category directory (`.omp/skills/<handle>/`), not only at the top level. If one exists, confirm intent with `ask` (unless they already said "update my skill" or similar):
+Look recursively for `.omp/skills/**/*-mode/SKILL.md` and `~/.omp/agent/skills/*-mode/SKILL.md` matching the user's handle. Mode skills can live in a personal category directory (`.omp/skills/<handle>/`), not only at the top level. If one exists, confirm intent with the live user-question tool (unless they already said "update my skill" or similar):
 
 - Update the existing skill (default for repeat runs)
 - Start fresh (rare, ask why before doing it)
@@ -26,7 +26,7 @@ Update mode changes the rest of the flow:
 
 ### 1. Mine their history
 
-Locate the active workspace's transcripts before fanning out. The system prompt names the session transcript tree `~/.omp/agent/sessions/<encoded-cwd>/*.jsonl`, with subagent sidecars at `<session-stem>/<AgentId>.jsonl`. Use only that path. Don't glob across sibling `~/.omp/agent/sessions/<other-cwd>/` buckets. That crosses workspace boundaries and reads private chats from unrelated projects.
+Locate the active workspace's transcripts before fanning out. The system prompt names the current workspace's session transcript directory. Use only that path. Don't glob across unrelated workspace session buckets. That crosses workspace boundaries and reads private chats from unrelated projects.
 
 Survey recent agent conversations within that scope for recurring patterns. Run multiple parallel subagents across slices of history (e.g. last 2-4 weeks, split into 3 slices so each has enough material). Each slice mining subagent reads transcripts from the workspace-scoped path the parent provides, looks for the signals below, and returns a short structured list of patterns it saw with evidence pointers. Default signals worth hunting:
 
@@ -41,9 +41,9 @@ Cross-check across slices before elevating a signal. Patterns seen in 2+ slices 
 
 ### 2. Ask the user directly
 
-Mining misses intent that hasn't come up yet. Use the `ask` tool (structured multi-choice) rather than asking the user to type from scratch.
+Mining misses intent that hasn't come up yet. Use the the live user-question tool tool (structured multi-choice) rather than asking the user to type from scratch.
 
-Shape: one or two questions with 4-6 options each, `allowMultiple: true` for category questions. Start broad ("Which areas matter most?"), then follow up on selected areas with specific options. After the structured rounds, one free-form chat question catches anything the options missed.
+Shape: one or two questions with 4-6 options each, `allow_multiple: true` for category questions. Start broad ("Which areas matter most?"), then follow up on selected areas with specific options. After the structured rounds, one free-form chat question catches anything the options missed.
 
 Don't dump 20 questions.
 
@@ -93,7 +93,7 @@ Work in a worktree off main. Commit and open a PR. Don't push to main directly.
 
 ## Evaluation
 
-A `-mode` skill is subjective output. An `authoring-a-skill`-style test/iterate benchmark loop isn't useful here. Vibe-check with the user: does it read like them? Did it miss anything? Then ship.
+A `-mode` skill is subjective output. A the `authoring-a-skill` playbook-style test/iterate benchmark loop isn't useful here. Vibe-check with the user: does it read like them? Did it miss anything? Then ship.
 
 Run a description-optimization loop only if the skill's trigger accuracy turns out to be a problem in practice.
 

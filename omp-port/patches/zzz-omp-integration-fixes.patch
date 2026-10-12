@@ -1,0 +1,134 @@
+diff -r a/skills/ketchup/SKILL.md b/skills/ketchup/SKILL.md
+--- a/skills/ketchup/SKILL.md	2026-10-13 03:42:51.027011500 +0500
++++ b/skills/ketchup/SKILL.md	2026-10-13 03:42:51.229254300 +0500
+@@ -6,6 +6,8 @@
+ 
+ # Ketchup
+ 
++On OMP, read `skill://omp-mechanics` first; its response-style and read-only rules override this skill where they differ.
++
+ Catch the user up on everything in this chat since the last message they wrote before `/ketchup`. Notifications and subagent results are not their messages. Write in the plain voice of [`/bro`](../bro/SKILL.md), and skip its restating step. Assume the user remembers their last message and nothing after it. Call each PR, branch, or agent by a name they would know, not by a label you invented during the work.
+ 
+ ## Gather what changed
+diff -r a/skills/make-bot-ui/SKILL.md b/skills/make-bot-ui/SKILL.md
+--- a/skills/make-bot-ui/SKILL.md	2026-10-13 03:42:51.029516300 +0500
++++ b/skills/make-bot-ui/SKILL.md	2026-10-13 03:42:51.231768800 +0500
+@@ -1,5 +1,5 @@
+ ---
+-name: Make Bot UI
++name: make-bot-ui
+ description: >-
+   Use when building a custom UI (page, dashboard, buttons) that should wake a
+   Grok Bot over a webhook, when the user must provide a webhook sender key, or
+@@ -8,6 +8,8 @@
+ ---
+ # How to make a bot UI
+ 
++On OMP, read `skill://omp-mechanics/references/make-bot-ui-on-omp.md` first. It overrides every step below that needs `update_state`, a webhook routine, `SendToUser`, or `api2.cursor.sh`; OMP exposes none of them.
++
+ Build a page the user clicks. A server on this computer POSTs JSON to a webhook routine. The bot wakes with that JSON. Keep the sender key on the server. Do not put the sender key in the browser, in chat, or in this skill.
+ 
+ ## Create the webhook routine
+diff -r a/skills/poteto-help/SKILL.md b/skills/poteto-help/SKILL.md
+--- a/skills/poteto-help/SKILL.md	2026-10-13 03:42:51.038571400 +0500
++++ b/skills/poteto-help/SKILL.md	2026-10-13 03:42:51.241335100 +0500
+@@ -8,10 +8,12 @@
+ 
+ Answer the user's question about pstack, hand them a prompt they can send, and link the file the answer came from. For a help question, don't start the work. The user asked how, and a pstack run spends real tokens, so let them send the prompt.
+ 
+-A message that asks for work, such as "use pstack to fix this bug", is not a help question. Read [`poteto-mode`](../poteto-mode/SKILL.md), do the work under it, and mention once that a Custom Mode keeps it on.
++A message that asks for work, such as "use pstack to fix this bug", is not a help question. Read [`poteto-mode`](../poteto-mode/SKILL.md), do the work under it, and mention once that `/poteto-mode on` keeps it on for the session.
+ 
+ This file maps questions to the skills and guide pages that hold the answers. Those files own the details. Read the file you route to before you quote it, and trust it when it disagrees with this map. The links here point into the installed plugin, which the user may not be able to open, so give the user the file's public copy: `https://github.com/ubranch/pstack-omp/blob/main/plugins/pstack/` followed by its path.
+ 
++On OMP, type every skill command below except `/poteto-mode` as `/skill:<name>`, for example `/skill:ketchup`. A bare `/ketchup` is sent as plain text.
++
+ ## Find out what they need
+ 
+ Infer the need from the message and the conversation. A named situation, such as "which skill reviews a PR?", goes straight to its section. If the need is still unclear, ask one multiple-choice question with these options, then answer only the section they pick:
+@@ -88,7 +90,7 @@
+ | Turn their own working habits into a personal mode skill | [`/automate-me`](../automate-me/SKILL.md) |
+ | Turn what a finished task taught into skill edits | [`/reflect`](../reflect/SKILL.md) |
+ | Stop agents from repeating the same mistakes in this repo | [`/correct`](../correct/SKILL.md) |
+-| Build a page whose buttons wake a Grok Bot over a webhook | [`/make-bot-ui`](../make-bot-ui/SKILL.md) |
++| Build a local page whose buttons call a server; OMP has no webhook wake, see the [adapter](../omp-mechanics/references/make-bot-ui-on-omp.md) | [`/skill:make-bot-ui`](../make-bot-ui/SKILL.md) |
+ | Find their way around pstack | `/poteto-help` |
+ 
+ If a skill directory next to this one is missing from the table, read its frontmatter and route by its description. The `principle-*` directories are covered under principles below.
+@@ -123,13 +125,13 @@
+ 
+ pstack has no separate planning skill. A native runtime plan mode is optional. For phases or stacked PRs, asking `/poteto-mode` for a plan runs the [Multi-phase plan playbook](../poteto-mode/playbooks/multi-phase-plan.md), which writes the plan and does not implement it. For a design question, the Prototype playbook or `/architect` settles it in code first.
+ 
+-Principles are one-rule skills that `/poteto-mode` reads and cites in its replies. The user rarely invokes one. They steer with the names instead, as in "apply prove it works. show me the real output." Typing `/principle-<name>` still loads one on demand. [Guide page 8](../../README.md) lists them.
++Principles are one-rule skills that `/poteto-mode` reads and cites in its replies. The user rarely invokes one. They steer with the names instead, as in "apply prove it works. show me the real output." Typing `/skill:principle-<name>` still loads one on demand. The Principles section of [`poteto-mode`](../poteto-mode/SKILL.md) lists them.
+ 
+ ## Fix a run that went wrong
+ 
+ | Symptom | Fix |
+ |---|---|
+-| The mode stopped applying after a few turns | It was started with Enter. Start it as a Custom Mode, or start each task with `/poteto-mode`. |
++| The mode stopped applying after a few turns | Pin it with `/poteto-mode on` (it persists in the saved chat), or start each task with `/poteto-mode`. |
+ | A question got treated as the next step of the last task | Say "new task", or say the turn doesn't need the mode. |
+ | A new model choice had no effect | Inspect the effective OMP role configuration and returned model metadata with `/setup-pstack`; follow only the native reload behavior actually required. |
+ | Runs cost more than expected | See the cost paragraph under Get set up. |
+diff -r a/skills/poteto-help/references/prompting.md b/skills/poteto-help/references/prompting.md
+--- a/skills/poteto-help/references/prompting.md	2026-10-13 03:42:51.037071500 +0500
++++ b/skills/poteto-help/references/prompting.md	2026-10-13 03:42:51.239317900 +0500
+@@ -38,7 +38,7 @@
+ ## Before stepping away
+ 
+ - Say "im going to bed" or "im stepping away" so the agent stops asking.
+-- Write done as checks every iteration can run, and give `/loop` that predicate.
++- Write done as checks every iteration can run, and hand that predicate to the root-owned wake mechanism OMP exposes. Without one, the run ends when the turn ends.
+ - Ask for a fresh worktree off a named base.
+ - Pre-answer what the agent would stop for, such as "don't ask me before committing".
+ - Ask for a decision log to audit later.
+diff -r a/skills/poteto-help/references/recipes.md b/skills/poteto-help/references/recipes.md
+--- a/skills/poteto-help/references/recipes.md	2026-10-13 03:42:51.037571800 +0500
++++ b/skills/poteto-help/references/recipes.md	2026-10-13 03:42:51.240330400 +0500
+@@ -39,7 +39,7 @@
+ 
+ ## Away and back
+ 
+-- `/poteto-mode im going to bed. <goal> in a fresh worktree off <base>. done means <checks>. keep a decision log. don't ask me before committing. /loop until done. if you're truly stuck after a few hours, stop and write up why.`
++- `/poteto-mode im going to bed. <goal> in a fresh worktree off <base>. done means <checks>. keep a decision log. don't ask me before committing. keep going until done. if you're truly stuck after a few hours, stop and write up why.`
+ - `/show-me-your-work catch me up on what you did last night.` Read its Attention section first.
+ - `/poteto-mode full autopilot on this queue. each item is independent.`
+ - `/poteto-mode autopilot these changes but stack them, don't ship. i'll land the stack.`
+diff -r a/skills/poteto-mode/playbooks/multi-phase-plan.md b/skills/poteto-mode/playbooks/multi-phase-plan.md
+--- a/skills/poteto-mode/playbooks/multi-phase-plan.md	2026-10-13 03:42:51.048889400 +0500
++++ b/skills/poteto-mode/playbooks/multi-phase-plan.md	2026-10-13 03:42:51.251494700 +0500
+@@ -9,7 +9,7 @@
+ 3. Explore in subagents through `skill://pstack-omp` with read-only scope and existing role configuration (the **guard-the-context-window** principle skill). Each returns file pointers, conventions, test commands, and entry points. No inlined dumps.
+ 4. Copy the skeleton below into the plan file and fill every placeholder. Unless the operator names a path, write the file under the agent store's `docs/`. Keep every heading and every sub-block in the order shown. One section per PR. One PR is one change with its own evidence (the **sequence-verifiable-units** principle skill). Name the execution playbook in **How to read this**. Pick between `playbooks/autopilot-full.md` and `playbooks/autopilot-stack.md` per the rule at the end of `playbooks/autopilot-stack.md`. A standing program takes `playbooks/orchestrate.md`.
+ 5. Write under `/technical-writing` in full, then `/unslop`. The body is one Diátaxis mode, how-to. Appendices hold explanation and reference. Each heading states the task or the finding. No long dashes. No mid-sentence colons.
+-6. Run `node skill://poteto-mode/scripts/check-plan.mjs <plan.md>` and fix every line it prints (the **encode-lessons-in-structure** principle skill).
++6. Resolve `skill://poteto-mode/scripts/check-plan.mjs` to its loader-reported filesystem path, run `node <that path> <plan.md>`, and fix every line it prints (the **encode-lessons-in-structure** principle skill).
+ 7. Hand back. Post the plan path and the script's output, then stop. Execution starts on the operator's explicit go, under the execution playbook the plan names.
+ 
+ **Verification.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked (the **prove-it-works** principle skill). That sentence is the verification rule. Every verification block opens with it. The live block is mandatory. Ten lanes at the PR head drive the real surface through its control skill, per the **swarm** skill, on the `swarm workers` model (default your fast code model). Each lane is one box with a concrete scenario, the screenshot it saves, and its pass predicate. One lane is the **Regression lane against trunk.** It runs the same load-bearing scenario on trunk and head. If trunk does not have the feature, the lane records that fact and gates the behavior the diff adds plus the end state the user waits for instead of inventing a trunk result. The perf gate is dual-sided. Trunk and head must both produce the named metric. If trunk lacks the feature, also isolate the work the diff adds and set an absolute budget for that work plus the end-to-end state the user waits for. Do not claim a ratio between unlike scenarios. The perf block names the metric, the interleaved probe, the trunk baseline measured first, and the rule with the number that fails. A PR that changes an interaction is review-gated. The operator reviews it in chat with screenshots and a video before merge. A PR that changes no interaction writes `**Review gate.** None. <PR id> is not review-gated.` and no boxes under it.
+diff -r a/skills/poteto-mode/scripts/check-plan.mjs b/skills/poteto-mode/scripts/check-plan.mjs
+--- a/skills/poteto-mode/scripts/check-plan.mjs	2026-10-13 03:42:51.062891700 +0500
++++ b/skills/poteto-mode/scripts/check-plan.mjs	2026-10-13 03:42:51.266332200 +0500
+@@ -17,7 +17,8 @@
+ 	"Merge.",
+ ];
+ const PROGRAM_H3 = ["Arm the program", "Spawn owners", "PR mechanics", "Verdict and merge", "Boot recipe"];
+-const PROGRAM_MARKERS = ["git show origin/main:", "/loop 1h", "status message"];
++// Each group passes on any one marker; OMP plans may name a native wake mechanism or installed skill URIs instead.
++const PROGRAM_MARKERS = [["git show origin/main:", "skill://"], ["/loop 1h", "wake mechanism"], ["status message"]];
+ const HOW_TO_READ_MARKERS = [
+ 	"One box is one unit of work",
+ 	"names the evidence",
+@@ -113,8 +114,9 @@
+ 		if (at === -1) fail(program.n, `Program checklist lacks "### ${name}" in order`);
+ 		else cursor = at + 1;
+ 	}
+-	for (const marker of PROGRAM_MARKERS) {
+-		if (!bodyText(program).includes(marker)) fail(program.n, `Program checklist lacks "${marker}"`);
++	for (const group of PROGRAM_MARKERS) {
++		if (!group.some((marker) => bodyText(program).includes(marker)))
++			fail(program.n, `Program checklist lacks ${group.map((m) => `"${m}"`).join(" or ")}`);
+ 	}
+ }
+ 

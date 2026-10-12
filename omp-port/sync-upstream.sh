@@ -72,11 +72,14 @@ write_json() {
 # Build at <sha>, install it, refresh the derived fields, and stage everything. The pin lands
 # last and only when <move-pin> is yes, so an interrupted run reruns cleanly instead of latching.
 do_build() {
-	local sha="$1" pin="$2" move="$3" version work n p k
+	local sha="$1" pin="$2" move="$3" version manifest work n p k
 	ensure_canon "$sha" || die "no canonical checkout at $CANON and cloning $UPSTREAM_URL failed"
 	# Read before the worktree changes, so a lazy blob fetch that fails cannot strand a
 	# rebuilt tree next to an unwritten version.
-	version=$(git -C "$CANON" show "$sha:pstack/.cursor-plugin/plugin.json" | jq -r .version)
+	manifest=pstack/plugin.json
+	git -C "$CANON" cat-file -e "$sha:$manifest" 2>/dev/null || manifest=pstack/.cursor-plugin/plugin.json
+	version=$(git -C "$CANON" show "$sha:$manifest" | jq -er '.version | select(type == "string" and length > 0)') ||
+		die "upstream manifest at ${sha:0:7} has no valid version"
 	work=$(mktemp -d)
 	build_tree "$sha" "$work" || {
 		rm -rf "$work"

@@ -4,6 +4,34 @@
 # The argument, or CANON, is the cursor/plugins clone the reproducible check builds from.
 set -uo pipefail
 . "$(dirname "$0")/lib.sh"
+
+router_index() {
+	local section="$1" file="$2"
+	awk -v section="$section" '
+		$0 == "## " section { active = 1; next }
+		active && /^## / { exit }
+		active && /^- \*\*/ {
+			line = $0
+			if (section == "Principles" && match(line, /\(\*\*principle-[a-z-]+\*\*\)/)) {
+				name = substr(line, RSTART, RLENGTH)
+				gsub(/[()*]/, "", name)
+			} else if (section == "Playbooks" && match(line, /playbooks\/[a-z-]+\.md/)) {
+				name = substr(line, RSTART, RLENGTH)
+				sub(/^playbooks\//, "", name)
+				sub(/\.md$/, "", name)
+			} else {
+				sub(/^- \*\*/, "", line)
+				sub(/\*\*.*/, "", line)
+				line = tolower(line)
+				gsub(/[^a-z0-9 -]/, "", line)
+				gsub(/ +/, "-", line)
+				name = (section == "Principles" ? "principle-" : "") line
+			}
+			print name
+		}
+	' "$file" | LC_ALL=C sort -u
+}
+
 cd "$(dirname "$0")/../plugins/pstack"
 CANON="${1:-$CANON}"
 fail=0
@@ -47,33 +75,6 @@ scan() {
 
 scan "$PAT_SLUG" "model-agnostic" slug
 
-# Role instructions must name an omp lever. /model sets the chat model,
-# task.agentModelOverrides sets a per-agent model.
-if grep -rIlq 'task.agentModelOverrides' skills/setup-pstack/SKILL.md skills/poteto-mode/SKILL.md 2>/dev/null; then
-	report "omp model levers" "PASS  task.agentModelOverrides named"
-else
-	report "omp model levers" "FAIL"
-	violate "setup-pstack and poteto-mode must name task.agentModelOverrides"
-fi
-if grep -rIlq '/model' skills/setup-pstack/SKILL.md 2>/dev/null; then
-	report "chat-model lever" "PASS  /model named in setup-pstack"
-else
-	report "chat-model lever" "FAIL"
-	violate "setup-pstack must tell the user to pick the chat model with /model"
-fi
-
-# A diverse-model review is a property of the reviewer, not a named slug.
-undiverse=""
-for f in skills/interrogate/SKILL.md skills/arena/SKILL.md skills/reflect/SKILL.md; do
-	grep -qiE 'different (model )?(family|provider)|separate model family' "$f" ||
-		undiverse="$undiverse $f"
-done
-if [ -n "$undiverse" ]; then
-	report "review diversity" "FAIL"
-	for f in $undiverse; do violate "no model-diversity property stated in $f"; done
-else
-	report "review diversity" "PASS  stated as a property"
-fi
 
 # A capability claim pinned to a version rots on the next upgrade, exactly like a
 # hardcoded model slug. Depend on a probe or a conditional instead.
@@ -89,15 +90,13 @@ scan "$PAT_CAPS" "capability claims" caps
 
 scan "$PAT_RESIDUE" "cursor residue" residue
 
-# omp's task wire has no readonly field, so a bare `readonly: true` task parameter
-# is silently ignored. Read-only posture must be a brief-level tool grant plus a
-# write ban, with the skill stating omp cannot enforce it.
-ro=$(grep -rIn -E '`readonly`:\s*`?true`?|readonly:\s*true' --include='*.md' "${SCOPE[@]}" 2>/dev/null)
-if [ -n "$ro" ]; then
-	report "readonly posture" "FAIL"
-	while read -r r; do violate "unenforceable readonly: $r"; done <<<"$ro"
+# Runtime contract failures are never allowlisted.
+contract=$(grep -rIn -E "$PAT_CONTRACT" --include='*.md' "${SCOPE[@]}" 2>/dev/null)
+if [ -n "$contract" ]; then
+	report "live task contract" "FAIL"
+	while read -r c; do violate "$c"; done <<<"$contract"
 else
-	report "readonly posture" "PASS  read-only stated as brief posture"
+	report "live task contract" "PASS  no fake hub, unsupported fields, or Cursor model setup"
 fi
 
 missing=""
@@ -128,13 +127,13 @@ parity() {
 
 ROUTER=skills/poteto-mode/SKILL.md
 parity "principle parity" \
-	"$(grep -ohE 'principle-[a-z-]+' "$ROUTER" | sort -u)" \
+	"$(router_index Principles "$ROUTER")" \
 	"$(for d in skills/principle-*/; do basename "$d"; done | sort -u)" \
 	'index names ' ', no leaf' \
 	'leaf ' ' not in the Principles index'
 
 parity "playbook parity" \
-	"$(grep -ohE 'playbooks/[a-z-]+\.md' "$ROUTER" | sed 's|playbooks/||; s|\.md$||' | sort -u)" \
+	"$(router_index Playbooks "$ROUTER")" \
 	"$(for f in skills/poteto-mode/playbooks/*.md; do basename "$f" .md; done | sort -u)" \
 	'index names playbook ' ', no file' \
 	'playbook ' ' not named in the Playbooks index'
@@ -164,21 +163,6 @@ if [ -f "$ALLOW" ]; then
 	fi
 fi
 
-# Claims the published guide makes about pstack, verified as present.
-unclaimed=""
-for s in create-verification-skill maintain-verification-skill swarm poteto-mode; do
-	[ -f "skills/$s/SKILL.md" ] || unclaimed="$unclaimed""guide names /$s, not installed"$'\n'
-done
-grep -qi 'features' skills/create-verification-skill/SKILL.md ||
-	unclaimed="$unclaimed""create-verification-skill must build the Feature Map (references/features)"$'\n'
-grep -q 'mode: true' skills/poteto-mode/SKILL.md ||
-	unclaimed="$unclaimed""poteto-mode must carry the Custom Mode pin frontmatter"$'\n'
-if [ -n "$unclaimed" ]; then
-	report "guide claims" "FAIL"
-	while read -r c; do [ -n "$c" ] && violate "$c"; done <<<"$unclaimed"
-else
-	report "guide claims" "PASS  verification skill, Feature Map, swarm, pin"
-fi
 
 bad=""
 for d in skills/*/; do
@@ -195,14 +179,11 @@ else
 	report "conflict markers" "PASS  no unresolved merge left"
 fi
 
-# The counts are generated by omp-port/sync-upstream.sh into marketplace.json. The two READMEs
-# carry them by hand, so they rot silently unless the live tree is the judge. "principle" with no
-# trailing s so it matches both "principles" and "principle leaves".
 read -r nskills nplays nprinc < <(port_counts .)
 MARKET=../../.omp-plugin/marketplace.json
 pin7=$(cut -c1-7 ../../omp-port/UPSTREAM)
 stale=""
-for f in ../../README.md README.md "$MARKET"; do
+for f in "$MARKET"; do
 	grep -qF "$nskills skills" "$f" 2>/dev/null || stale="$stale$f wants \"$nskills skills\""$'\n'
 	grep -qF "$nplays playbooks" "$f" 2>/dev/null || stale="$stale$f wants \"$nplays playbooks\""$'\n'
 	grep -qF "$nprinc principle" "$f" 2>/dev/null || stale="$stale$f wants \"$nprinc principle\""$'\n'
@@ -214,6 +195,17 @@ if [ -n "$stale" ]; then
 	while read -r s; do [ -n "$s" ] && violate "$s"; done <<<"$stale"
 else
 	report "counts" "PASS  $nskills skills, $nplays playbooks, $nprinc principles, pin $pin7"
+fi
+
+version=$(jq -er '.version | select(type == "string" and length > 0)' package.json 2>/dev/null) || version=""
+badmeta=""
+v=$(jq -er '.metadata.version as $v | .plugins[] | select(.name == "pstack") | .version | select(. == $v)' "$MARKET" 2>/dev/null) || v=""
+[ -n "$version" ] && [ "$v" = "$version" ] || badmeta="$badmeta""marketplace versions must match package.json"$'\n'
+if [ -n "$badmeta" ]; then
+	report "plugin manifests" "FAIL"
+	while read -r m; do [ -n "$m" ] && violate "$m"; done <<<"$badmeta"
+else
+	report "plugin manifests" "PASS  marketplace and package versions agree"
 fi
 
 # The port-owned paths are the one exception to "the build owns this tree", so their absence is

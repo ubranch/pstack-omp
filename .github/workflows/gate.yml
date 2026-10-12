@@ -11,3 +11,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: bash omp-port/check-port.sh
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: sudo apt-get update && sudo apt-get install --no-install-recommends -y jq ripgrep
+      - name: Install pinned OMP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/pstack-omp-runtime"
+          gh release download v18.10.2 --repo can1357/oh-my-pi --pattern omp-linux-x64 --dir "$RUNNER_TEMP/pstack-omp-runtime"
+          printf '%s  %s\n' '3d8f967bb4cf2a154592115edaf4bb723d7a6a6448eec933ac5eb49344938125' "$RUNNER_TEMP/pstack-omp-runtime/omp-linux-x64" | sha256sum --check -
+          mv "$RUNNER_TEMP/pstack-omp-runtime/omp-linux-x64" "$RUNNER_TEMP/pstack-omp-runtime/omp"
+          chmod +x "$RUNNER_TEMP/pstack-omp-runtime/omp"
+          printf '%s\n' "$RUNNER_TEMP/pstack-omp-runtime" >> "$GITHUB_PATH"
+      - name: Exercise native session audit
+        run: node omp-port/worktree-audit.test.mjs bash
