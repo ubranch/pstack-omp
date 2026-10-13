@@ -120,11 +120,7 @@ The user configuration and three installation registries remained hash-identical
 
 ### Repository automation
 
-The `upstream-sync.yml` workflow defines a daily official-source drift check and a manual trigger. It skips while an open `sync/upstream-` PR exists, checks the current tree before syncing, and captures one target.
-
-When a sync changes the tree, the workflow opens a PR with sync and gate output. It squash-merges only when both commands succeed. Otherwise, it leaves the PR open with the failure output. Fork workflow activation and repository permissions still govern whether this automation runs.
-
-Keep this fork's `upstream-sync` workflow disabled unless you explicitly want unattended merging. The local sync command remains available for reviewed updates.
+This fork does not ship the upstream `upstream-sync.yml` workflow. It squash-merged upstream syncs unattended, and GitHub never registered it on the fork, so it could not be disabled through Actions. Run the local sync command and merge reviewed updates instead.
 
 `gate.yml` runs `check-port.sh` on pull requests and pushes to `main`. Its separate Ubuntu audit job installs the official OMP 18.10.2 binary, verifies the pinned SHA-256, and runs the native worktree-audit E2E, including POSIX dotenv-selected XDG roots. That job must pass before merging or installing this update. It has read-only repository permission. The download token is scoped to the download step, not the test process.
 
