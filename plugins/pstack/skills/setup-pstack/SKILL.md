@@ -55,4 +55,4 @@ Read only the changed settings and verify the requested entries. Report what cha
 
 Routing changes apply to subsequent subagent launches after the runtime reloads settings. They do not switch a running agent or the current chat model. Do not require a restart without runtime evidence that one is needed.
 
-If the project lacks a real app driver and the user is asking how to prove changes, offer `/create-verification-skill` once. Create it only on an explicit request. Model setup does not install or generate verification tooling on its own.
+If the project lacks a real app driver and the user is asking how to prove changes, offer `/create-verification-skill` once. If the project lacks a formal verification skill (a project skill that runs a model checker, a proof, or another verifier against the code) and the user is asking how to prove a property holds in every case in scope, offer `/create-formal-verification-skill` once. Create either only on an explicit request. Model setup does not install or generate verification tooling on its own.

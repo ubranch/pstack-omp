@@ -364,6 +364,18 @@ try {
 	}
 	rmSync(lockSession);
 
+	git("-C", idle, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty", "-m", "unpushed");
+	try {
+		assert.equal(audit(sessions).rows.get(forward(idle)).bucket, "hold-unpushed", "Commits on no remote branch must block cleanup");
+		assert.equal(audit(join(root, "missing")).rows.get(forward(idle)).bucket, "hold-unpushed", "Unpushed commits must outrank unavailable enrichment");
+		git("-C", idle, "checkout", "--detach");
+		assert.equal(audit(sessions).rows.get(forward(idle)).bucket, "hold-unpushed", "A detached head off base must block cleanup");
+	} finally {
+		git("-C", idle, "checkout", "idle");
+		git("-C", idle, "reset", "--keep", "HEAD~1");
+	}
+	assert.equal(audit(sessions).rows.get(forward(idle)).bucket, "safe", "A head on base is not unpushed");
+
 	if (process.platform === "win32") {
 		const windowsSession = join(sessions, "windows-path.jsonl");
 		for (const [text, bucket] of [

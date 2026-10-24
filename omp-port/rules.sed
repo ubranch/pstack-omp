@@ -7,8 +7,8 @@ Resolve explorer and explainer roles through `skill://pstack-omp`. Give each a r
 Resolve investigators and the synthesizer through `skill://pstack-omp`. Use the operator's existing role configuration and report unavailable model diversity; do not rewrite it.
 /Each reviewer and the synthesizer name a role line in /c\
 Resolve the three reviewers and synthesizer through `skill://pstack-omp`. Keep Divergent on a different model family from Judgment when returned model metadata proves that diversity. Otherwise report the limitation. Preserve the operator's existing configuration.
-/^4\. Pick the worker model from /c\
-4. Resolve the worker role and existing model configuration through `skill://pstack-omp`. For a model race, record each arm's returned model metadata; do not infer diversity from different prompts or change operator configuration.
+/^3\. Pick the worker model from /c\
+3. Resolve the worker role and existing model configuration through `skill://pstack-omp`. For a model race, record each arm's returned model metadata; do not infer diversity from different prompts or change operator configuration.
 /^3\. Pick the runners\. Use the /c\
 3. Resolve runners through `skill://pstack-omp` using existing role configuration. Prefer different model families for judgment-sensitive work when returned metadata proves it, and report unavailable diversity. Spawn more runners when the arena covers multiple design directions. Use the same model N times when the work is generation-bound rather than judgment-sensitive.
 /^Take the runners from the `architect runners` line /c\
@@ -31,30 +31,16 @@ s#Every spawn is `generalPurpose` with `readonly: false` \(agent mode\)\. \*\*Do
 s#with `subagent_type: "poteto-agent"` and an explicit model per the Subagents section#through `skill://pstack-omp` with read-only scope and existing role configuration#g
 s#`subagent_type: "([^"]+)"`#`agent`: `\1`#g
 s#When a worker must start from a non-default pushed branch, pass `cloud_base_branch`\.#When a worker needs a non-default base, create its private `git worktree` on that exact base before dispatch and name the absolute path in its brief.#
-s#N is total workers, not the cloud concurrency limit\.#N is total workers. Respect the live runtime's concurrency limit without changing operator configuration.#
-s#One Cursor cloud agent#One root-started owner in its own worktree#g
 s#each a Cursor cloud agent#each a root-started worker in its own worktree#g
 s#Each live lane runs on its own cloud VM at the PR head\.#Each live lane runs in its own worktree at the exact PR head.#
-s#Fan out N parallel cloud workers\.#Fan out N parallel workers through `skill://pstack-omp`.#
 s#as cloud agents#in separate worktrees#g
 s#Cloud-agent PR tools default to draft, so set `draft: false` on every PR creation call\.#Open a ready PR with the resolved forge's documented command. Do not assume another runtime's defaults.#
 
 s#One owner per PR carries build through merge, and the root swarm-verifies each PR before its owner merges#One owner per PR prepares the change and merge-ready evidence, and the root swarm-verifies and performs each authorized merge#
 /^\*\*You own the verdicts, never the PRs\./c\
 **You own the verdicts and authorized publication. One local owner prepares each PR from build to merge-ready, and the root merges only on its clean swarm verdict.** For "autopilot this queue", "full autopilot", and one-owner-per-PR programs. Orchestrate runs a standing program whose coordinator lands verified work. Here each PR's owner keeps the local lifecycle, while the root performs pushes, PR mutations, approvals, and merges under the operator's grant and existing gates.
-s#owns build, the first push, a ready PR,#owns build, local branch/head evidence and requests for the root's first push and ready PR,#
-s#and the merge itself\.#and merge-ready evidence for the root.#
-s#pushes its first branch snapshot, and opens the PR ready, never draft\.#returns its first local branch snapshot and a ready-PR request to the root, never a draft request. The root performs the authorized first push and PR creation before self-proof.#
-s#After that, the owner pushes its branch again after every verifiable unit \(hooks on, a WIP commit is fine\)\.#After that, the owner returns local branch, diff, and head evidence after every verifiable unit; the root performs each authorized push with hooks on after the pre-review checks (a WIP commit is fine).#
-s#To publish each rebase, push the owner's own branch with `git push --force-with-lease` after an `ls-remote` check\.#To publish each rebase, the owner returns the exact local head and a publication request; the root pushes the owner's branch with `git push --force-with-lease` after an `ls-remote` check.#
-s#The merge is the one step an owner may not take alone\. Step 4 gates it\.#The owner never performs remote writes or merges. Step 4 gates the root's merge.#
-s#On a clean verdict the owner merges, and a fresh owner takes the next item\.#On a clean verdict the root merges, and a fresh owner takes the next item.#
-s#The owner merges only from a head freshly rebased onto trunk\.#The root merges only from the owner's exact head freshly rebased onto trunk.#
-s#The owner squash-merges its own PR through the resolved forge and returns\.#The root performs the authorized squash-merge through the resolved forge after these gates, and the owner returns.#
-s#The owner records it in the form that the tool's approval contract allows, with a pointer to the root's countersign\.#The owner returns a local approval record with a pointer to the root's countersign. The root records any authorized external approval in the form the tool's approval contract allows.#
-s#owns its change end to end: build, first push, a ready PR opened before self-proof,#owns the local change end to end: build, branch/head evidence and a request for the root to push and open a ready PR before self-proof,#
-s#Owners push only their own branches and report the tip, current base, and intended parent\. The root is the only topology writer\.#Owners prepare only their own local branches and report the diff, tip, current base, intended parent, and publication requests. The root is the only publisher and topology writer.#
-s#FORBIDDEN    no gt, no rebase, no force-push, no fixes outside scope, plus unit-specific bans#FORBIDDEN    no gt, no rebase, no external writes or merges, no fixes outside scope, plus unit-specific bans#
+s#FORBIDDEN    no PR retargets or merges, no rebase, no force-push, no fixes outside scope,#FORBIDDEN    no pushes, PR retargets, or merges, no rebase, no fixes outside scope,#
+s#Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section#Keep each subagent's configured model and effort, per the Subagents section#g
 s#On heavy repos the stacker is a standing role from wave one, integrating as units verify\.#On heavy repos the stacker is a standing local-preparation role from wave one, returning integration evidence as units verify; the root applies merges and performs authorized publication after the verdict gates.#
 s#A worker pushes its branch, a verifier writes its ledger row, receipts land in the store\.#A worker returns its local branch, diff, exact head, and publication request; the root performs the authorized push after the applicable gates. A verifier writes its local ledger row, and receipts land in the store.#
 /^A subagent that opens a PR runs /c\
@@ -72,8 +58,6 @@ s#Flake or infrastructure earns one fresh build, never a job retry\. One retry o
 s#Push that wave before replying so the reply cites the commit\. On Origin, reply with#The babysitter returns the local wave, exact head, and proposed replies; the root pushes the authorized wave before replying so each reply cites the published commit. On Origin, the root replies with#
 s#On GitHub, call `gh api --method POST#On GitHub, the root calls `gh api --method POST#
 s#Dismiss noise with the concrete disproof on the thread\.#The babysitter returns concrete disproof for noise; the root posts any authorized dismissal on the thread.#
-s#Each returns `PASS`, `PASS\+NOTES` or `FAIL` and posts that verdict on its own PR\.#Each returns `PASS`, `PASS+NOTES` or `FAIL` with exact head/base evidence and a proposed PR comment; the root accepts the evidence and posts the authorized verdict on that PR.#
-s#One subagent per PR, not batched,#One independent verifier per PR with its own brief, dispatched through `skill://pstack-omp` in one `tasks[]` batch when exposed or separate flat `task`/`solutionSpace` calls before waiting,#
 s#No PR and no push unless you already had one out\.#Children return local evidence and any publication request to the root. The root opens no PR and performs no push unless one was already out and the operation remains authorized.#
 
 s#go to your strongest judgment model \(`claude-[a-z0-9.-]+`\)#go to your strongest judgment model#
@@ -112,7 +96,6 @@ s#A local root arms each tick as a real terminal `/loop`\. The loop uses a monit
 s#A cloud root uses the existing cloud-sleeper wake chain instead\.#A wake outside the session requires an authorized external supervisor. A background job alone does not guarantee a wake.#
 s#In a local session, a real terminal `/loop`\. In a cloud root, a cloud-sleeper wake chain\.#Use a supported in-session loop or root-owned watcher. Out-of-session wakes require an authorized external supervisor.#
 s#Run `drive` and `background` under `/loop` in dynamic mode\.#Run `drive` and `background` with a root-owned watcher or the live loop when exposed and already enabled.#
-s#Hold the watch under `/loop` in dynamic mode\.#Hold the watch with a root-owned watcher or the live loop when exposed and already enabled.#
 s#`/loop` per component until the diff is zero\.#Repeat per component until the diff is zero using a supported root-owned wake mechanism.#
 s#"/loop until X"#"run until X"#g
 s#the cloud agent's status in the Cursor dashboard#the returned agent status and its `agent://<id>` report#g
@@ -137,16 +120,13 @@ s#misses one that lives at `\.cursor/worktrees/myrepo/x`#misses one that lives a
 s#The pinned and active chats are the real artifact \(principle-prove-it-works\)\. Get that set from the user or sidebar and cross-check every candidate\. The lever has marked `safe` a worktree the user had pinned, so the pinned set wins\.#Active sessions are the real artifact (principle-prove-it-works). Cross-check the returned agent handles, this workspace's session metadata, and the user's known active chats before removing a worktree. A script's `safe` label does not override a live owner's claim.#
 s#report whether the chat is pinned or ongoing and which worktrees it touches#report whether the session is active and which worktrees it touches#g
 s#A pinned chat spawns arena and repro trees into sibling worktrees via background subagents, and those are in use even when their names never hit the sidebar\.#An active chat can own sibling arena and repro worktrees even when their names do not appear in returned agent metadata.#
+s#then suggests a bucket\. The transcript scan is slow, so background it\.#then suggests a bucket. `hold-unpushed` means the worktree holds commits that exist nowhere else (ahead of its remote, no remote branch, or detached and not on the base, and HEAD is not the head of one of its PRs); push them or get a decision before anything else. A `LAST_CHAT` of `unavailable` means the OMP session store could not be read, so the row holds at `verify-session-unavailable`. The transcript scan is slow, so background it.#
+s#`scratch:N` is untracked throwaway, safe to drop, but name the files\.#`scratch:N` is N untracked files. Name them and get a decision too, since Git refuses to remove a worktree that holds them and this playbook never forces it.#
+s#Per path, `git worktree remove --force <path>`\. If the dir survives on ignored build artifacts, `rm -rf` it, then `git worktree prune`\.#Immediately before removal, re-run `git -C <path> status --porcelain=v1 --untracked-files=all` and confirm the row still qualifies, then per path `git worktree remove <path>`, never with `--force`. If Git refuses, stop and keep the worktree; never `rm -rf` it or `git worktree prune` to bypass the refusal.#
 s#Before spawning investigators, list the available MCPs from the Cursor environment\. Use the available-tools map when present\. Otherwise inspect the `mcps/` directory Cursor exposes for enabled MCP servers\.#Before spawning investigators, inspect the live available-tools map and each relevant MCP schema. Use only integrations actually exposed in this session.#
 
-s#On the operator's go, arm `/loop 1h` with a prompt that runs this tick\. `/loop` works in local and cloud roots\.#On the operator's go, schedule the hourly tick with `/loop 1h` only when exposed and already enabled. Otherwise use a root-owned watcher or authorized external supervisor with the same cadence and predicate; a background job alone does not guarantee a wake.#
-s#On the operator's go, the root arms `/loop 1h` with a prompt that runs this tick, per Autopilot-full step 6\.#On the operator's go, the root schedules the hourly audit tick through the supported wake mechanism in Autopilot-full step 6.#
-s#As soon as a subagent starts, the owner adds its ID, expected runtime \(at least the longest past run of that kind\), and state to a `children\.tsv` kept the same way\.#When the root starts a participant for an owner, record its returned ID, expected runtime (at least the longest past run of that kind), and state in that owner's `children.tsv` kept the same way.#
-s#the root has the owner record each stuck subagent as stuck and, if its work is still needed, replace it\.#the root has the owner record each stuck participant and starts its replacement if the work is still needed.#
 
-s#name: Poteto Mode#name: poteto-mode#
 /^is_background: true$/d
-s#re-read this playbook from trunk with `git show origin/main:pstack/skills/#re-read this playbook from its installed URI, `read skill://#g
 s#Re-read the execution playbook from trunk#Re-read the installed execution playbook#g
 s#`git show origin/main:pstack/skills/<each other leaf skill the program uses>`#`git show origin/main:<each skill or doc the product repo vendors itself>`#g
 s#`git show origin/main:pstack/skills/#`read skill://#g

@@ -35,7 +35,7 @@ Resolve the reviewer agent from the live roster through `skill://pstack-omp`. St
 
 If a configured reviewer cannot run, report the actual rejection and the resulting diversity gap. Use an available reviewer context without changing model configuration, and identify any runtime fallback from returned metadata.
 
-Read `references/reviewer-prompt.md` and fill in the same template for every reviewer with the stated intent, the diff or file contents, the rubric from `references/rubric.md`, and the code-quality lens from `references/code-quality-review.md`.
+Read `references/reviewer-prompt.md` and fill in the same template for every reviewer with the stated intent, the diff or file contents, the rubric from `references/rubric.md`, and the code-quality lens from `references/code-quality-review.md`. Keep each subagent's configured model and effort, per the Subagents section of the **poteto-mode** skill.
 
 ## Step 4, Synthesize
 
