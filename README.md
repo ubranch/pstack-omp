@@ -9,11 +9,11 @@ omp plugin install pstack@pstack-omp
 
 If `pstack-omp` is already registered, follow the [upgrade guide](plugins/pstack/README.md#upgrade) instead. It preserves the registry entry and your model configuration.
 
-This [ubranch fork](https://github.com/ubranch/pstack-omp) carries Lauren Tan's pstack engineering workflows for oh-my-pi, updated to official pstack 0.15.19. It continues the [original OMP port by negoro26](https://github.com/negoro26/pstack-omp). The separate `fan-out` plugin remains available with `omp plugin install fan-out@pstack-omp`.
+This [ubranch fork](https://github.com/ubranch/pstack-omp) carries Lauren Tan's pstack engineering workflows for oh-my-pi, updated to official pstack 0.15.32. It continues the [original OMP port by negoro26](https://github.com/negoro26/pstack-omp). The separate `fan-out` plugin remains available with `omp plugin install fan-out@pstack-omp`.
 
 Current skill, playbook, and principle totals are generated into the [marketplace catalog](.omp-plugin/marketplace.json).
 
-Read the [pstack install and upgrade guide](plugins/pstack/README.md) for mode controls, optional agents, and model routing. The 0.15.19 update adds `/ketchup`, `/correct`, `/poteto-help`, `/benchmark-checklist`, and the Explain the Number principle.
+Read the [pstack install and upgrade guide](plugins/pstack/README.md) for mode controls, optional agents, and model routing. The 0.15.32 update adds `/statechart`, `/sharpen`, `/in-your-own-words`, `/ketchup-video`, and the formal verification skills, plus a `hold-unpushed` worktree-audit bucket.
 
 The OMP adapter uses the live task schema and agent roster. Read `skill://pstack-omp` before dispatch. Skills do not override your chat model, saved agent routing, permissions, or project safety rules.
 
