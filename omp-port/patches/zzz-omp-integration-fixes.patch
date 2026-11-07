@@ -1,6 +1,6 @@
 --- a/skills/ketchup/SKILL.md
 +++ b/skills/ketchup/SKILL.md
-@@ -6,6 +6,8 @@
+@@ -6,6 +6,8 @@ disable-model-invocation: true
  
  # Ketchup
  
@@ -11,7 +11,7 @@
  Use [`/bro`](../bro/SKILL.md)'s voice, not its task: plain words, short sentences, no jargon, like one person catching up another. Say what changed for the user, not how you did it. Say "the tests pass", not "CI is green". Leave out hashes, file paths, commands, build numbers, and test counts unless the user needs one to act. Call each PR, branch, or agent by a name the user would know, not by a label you invented. If a fact needs context to make sense, give the context or leave the fact out.
 --- a/skills/make-bot-ui/SKILL.md
 +++ b/skills/make-bot-ui/SKILL.md
-@@ -8,6 +8,8 @@
+@@ -8,6 +8,8 @@ disable-model-invocation: true
  ---
  # How to make a bot UI
  
@@ -22,7 +22,7 @@
  ## Create the webhook routine
 --- a/skills/poteto-help/SKILL.md
 +++ b/skills/poteto-help/SKILL.md
-@@ -8,10 +8,12 @@
+@@ -8,10 +8,12 @@ disable-model-invocation: true
  
  Answer the user's question about pstack, hand them a prompt they can send, and link the file the answer came from. For a help question, don't start the work. The user asked how, and a pstack run spends real tokens, so let them send the prompt.
  
@@ -36,7 +36,7 @@
  ## Find out what they need
  
  Infer the need from the message and the conversation. A named situation, such as "which skill reviews a PR?", goes straight to its section. If the need is still unclear, ask one multiple-choice question with these options, then answer only the section they pick:
-@@ -24,40 +26,38 @@
+@@ -24,40 +26,38 @@ Infer the need from the message and the conversation. A named situation, such as
  
  Check the state that changes the answer, and mention it only when it does:
  
@@ -90,7 +90,7 @@
  
  ## Pick a skill
  
-@@ -93,11 +93,11 @@
+@@ -93,11 +93,11 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
  | Vet a performance number before reporting or acting on it | [`/benchmark-checklist`](../benchmark-checklist/SKILL.md) |
  | Run a large or cross-cutting change, or one to review after stepping away | [`/figure-it-out`](../figure-it-out/SKILL.md) |
  | Keep a decision log during a run, and review it afterward | [`/show-me-your-work`](../show-me-your-work/SKILL.md) |
@@ -104,7 +104,7 @@
  | Find their way around pstack | `/poteto-help` |
  
  If a skill directory next to this one is missing from the table, read its frontmatter and route by its description. The `principle-*` directories are covered under principles below.
-@@ -113,8 +113,8 @@
+@@ -113,8 +113,8 @@ Close calls:
  
  Not in pstack:
  
@@ -115,8 +115,8 @@
  - pstack has no `/orchestrate` skill. Orchestrate is a `/poteto-mode` playbook. If the slash menu shows `/orchestrate`, another plugin provides it.
  
  ## Playbooks and principles
-@@ -128,26 +128,26 @@
- - "full autopilot on this queue" runs Autopilot-full. "stack them, don't ship" runs Autopilot-stack.
+@@ -128,26 +128,26 @@ Playbooks are step lists inside `/poteto-mode`, not skills, so they have no slas
+ - "full autopilot on this queue" runs Autopilot-full. "autopilot, don't merge" runs Autopilot-stack.
  - "run the eval playbook" runs Eval.
  
 -Without `/poteto-mode`, a phrase such as "babysit this pr" can start Cursor's own skill for the same job instead. The Playbooks section of [`poteto-mode`](../poteto-mode/SKILL.md) lists every playbook and when it applies. [Guide page 6](../../docs/guide/06-verify-and-ship.md) covers opening, babysitting, and landing a PR.
@@ -151,7 +151,7 @@
  
  ## Make pstack my own
  
-@@ -156,7 +156,7 @@
+@@ -156,7 +156,7 @@ For a run that drifts, [`references/prompting.md`](references/prompting.md) has
  - `/poteto-mode write a skill for <workflow>` runs the authoring playbook. The eval playbook tests a skill change blind.
  - Fix a misbehaving skill in its own PR, not inside the feature work where it went wrong.
  
@@ -162,7 +162,7 @@
  
 --- a/skills/poteto-help/references/prompting.md
 +++ b/skills/poteto-help/references/prompting.md
-@@ -38,7 +38,7 @@
+@@ -38,7 +38,7 @@ A prompt states the intent and the check for done. The playbook supplies the ste
  ## Before stepping away
  
  - Say "im going to bed" or "im stepping away" so the agent stops asking.
@@ -173,7 +173,7 @@
  - Ask for a decision log to audit later.
 --- a/skills/poteto-help/references/recipes.md
 +++ b/skills/poteto-help/references/recipes.md
-@@ -42,7 +42,7 @@
+@@ -42,7 +42,7 @@ Swap in the real paths, skills, and done checks. Informal wording works.
  
  ## Away and back
  
@@ -194,14 +194,14 @@
  1. When the change is one or two files with an obvious approach, skip the plan. Say so and stop.
 @@ -7,7 +9,7 @@
  3. Explore in subagents through `skill://pstack-omp` with read-only scope and existing role configuration (the **guard-the-context-window** principle skill). Keep each subagent's configured model and effort, per the Subagents section. Each returns file pointers, conventions, test commands, and entry points. No inlined dumps.
- 4. Copy the skeleton below into the plan file and fill every placeholder. Unless the operator names a path, write the file under the agent store's `docs/`. Keep every heading and every sub-block in the order shown. One section per PR. One PR is one change with its own evidence (the **sequence-verifiable-units** principle skill). Name the execution playbook in **How to read this**. Pick between `playbooks/autopilot-full.md` and `playbooks/autopilot-stack.md` per the rule at the end of `playbooks/autopilot-stack.md`. A standing program takes `playbooks/orchestrate.md`.
+ 4. Copy the skeleton below into the plan file and fill every placeholder. Unless the operator names a path, write the file under the agent store's `docs/`. Keep every heading and every sub-block in the order shown. One section per PR. One PR is one change with its own evidence (the **sequence-verifiable-units** principle skill). Name the execution playbook in **How to read this**. Pick `playbooks/autopilot-full.md` when the run may merge. Pick `playbooks/autopilot-stack.md` when the operator lands the PRs. A standing program takes `playbooks/orchestrate.md`.
  5. Write under `/technical-writing` in full, then `/unslop`. The body is one Diátaxis mode, how-to. Appendices hold explanation and reference. Each heading states the task or the finding. No long dashes. No mid-sentence colons.
 -6. Run `node skill://poteto-mode/scripts/check-plan.mjs <plan.md>` and fix every line it prints (the **encode-lessons-in-structure** principle skill).
 +6. Resolve `skill://poteto-mode/scripts/check-plan.mjs` to its loader-reported filesystem path, run `node <that path> <plan.md>`, and fix every line it prints (the **encode-lessons-in-structure** principle skill).
  7. Hand back. Post the plan path and the script's output, then stop. Execution starts on the operator's explicit go, under the execution playbook the plan names.
  
  **Verification.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked (the **prove-it-works** principle skill). That sentence is the verification rule. Every verification block opens with it. The live block is mandatory. Ten lanes at the PR head drive the real surface through its control skill, per the **swarm** skill, on the `swarm workers` model (default your fast code model). Each lane is one box with a concrete scenario, the screenshot it saves, and its pass predicate. One lane is the **Regression lane against trunk.** It runs the same load-bearing scenario on trunk and head. If trunk does not have the feature, the lane records that fact and gates the behavior the diff adds plus the end state the user waits for instead of inventing a trunk result. The perf gate is dual-sided. Trunk and head must both produce the named metric. If trunk lacks the feature, also isolate the work the diff adds and set an absolute budget for that work plus the end-to-end state the user waits for. Do not claim a ratio between unlike scenarios. The perf block names the metric, the interleaved probe, the trunk baseline measured first, and the rule with the number that fails. A PR that changes an interaction is review-gated. The operator reviews it in chat with screenshots and a video before merge. A PR that changes no interaction writes `**Review gate.** None. <PR id> is not review-gated.` and no boxes under it.
-@@ -32,13 +34,13 @@
+@@ -32,13 +34,13 @@ Tests alone are not sufficient verification. A PR is verified only when its unit
  ### Arm the program
  
  - [ ] State the protocol and this plan to the operator, then stop. Start execution only on the operator's explicit go.
@@ -219,7 +219,7 @@
  
 --- a/skills/poteto-mode/scripts/check-plan.mjs
 +++ b/skills/poteto-mode/scripts/check-plan.mjs
-@@ -17,7 +17,8 @@
+@@ -17,7 +17,8 @@ const SUB_BLOCKS = [
  	"Merge.",
  ];
  const PROGRAM_H3 = ["Arm the program", "Spawn owners", "PR mechanics", "Verdict and merge", "Boot recipe"];
@@ -229,7 +229,7 @@
  const HOW_TO_READ_MARKERS = [
  	"One box is one unit of work",
  	"names the evidence",
-@@ -113,8 +114,9 @@
+@@ -113,8 +114,9 @@ else {
  		if (at === -1) fail(program.n, `Program checklist lacks "### ${name}" in order`);
  		else cursor = at + 1;
  	}
