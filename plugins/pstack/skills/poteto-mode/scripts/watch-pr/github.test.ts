@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import {
   ChecksUnavailable,
   WatcherQueryError,
@@ -472,18 +472,20 @@ describe("context and stack discovery", () => {
   it("requests and parses fork identity from gh before stack discovery", () => {
     const directory = mkdtempSync(join(tmpdir(), "watch-pr-fork-"));
     try {
-      writeFileSync(join(directory, "gh"), `#!/bin/sh
-case "$*" in
-  *number,headRefName,baseRefName,isCrossRepository*) ;;
-  *) exit 2 ;;
-esac
-printf '%s\\n' '[{"number":42,"headRefName":"feature","baseRefName":"main","isCrossRepository":true}]'
-`, { mode: 0o755 });
+      // Fake gh as a Bun script with a native launcher: sh on POSIX, .cmd on Windows.
+      writeFileSync(join(directory, "gh.mjs"), `if (!process.argv.slice(2).join(" ").includes("number,headRefName,baseRefName,isCrossRepository")) process.exit(2);
+console.log('[{"number":42,"headRefName":"feature","baseRefName":"main","isCrossRepository":true}]');
+`);
+      if (process.platform === "win32") {
+        writeFileSync(join(directory, "gh.cmd"), `@"${process.execPath}" "%~dp0gh.mjs" %*\r\n`);
+      } else {
+        writeFileSync(join(directory, "gh"), `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/gh.mjs" "$@"\n`, { mode: 0o755 });
+      }
       const program = `import { GhGitHubReader } from ${JSON.stringify(import.meta.dir + "/github.ts")};
         console.log(JSON.stringify(await new GhGitHubReader().openPullRequests({ owner: "owner", repo: "repo" })));`;
       const child = spawnSync(process.execPath, ["-e", program], {
         encoding: "utf8", timeout: 2000,
-        env: { ...process.env, PATH: directory + ":" + process.env.PATH },
+        env: { ...process.env, PATH: directory + delimiter + process.env.PATH },
       });
       expect(child.error).toBeUndefined();
       expect(child.status).toBe(0);

@@ -111,9 +111,9 @@ From `plugins/pstack/skills/poteto-mode/scripts`, the exercised commands were `b
 
 - `check-port.sh`: PASS, including generated-artifact reproducibility and metadata parity. Inventory totals remain in the marketplace catalog.
 - Worktree-audit E2E: PASS against real Git worktrees, native OMP session paths, and the audit script. It covers automatic lookup, dotenv/profile precedence, aliases, malformed records, unchanged OMP profile files, and inherited config-overlay isolation, plus `hold-unpushed` for a branch commit with no remote branch, a detached head off base, and unavailable enrichment. Permission-denial cases, control-character filenames, and POSIX XDG cases were explicitly skipped where Windows could not exercise them. The fixture isolates Git repository settings, hooks, signing, and GitHub CLI configuration.
-- Native RPC smoke: PASS for the six 0.15.32 skills, recorded on/off custom entries, pin toggling, no inference, and clean exit 0.
+- Native RPC smoke: PASS at the 0.15.36 tree for the six skills it checks, recorded on/off custom entries, pin toggling, no inference, and clean exit 0.
 - `bun run typecheck`: PASS.
-- `bun run test`: 60 passed, 1 failed: the `watch-pr/github.test.ts` fake-`gh` case. The upstream `orch` suite is gone at this pin. That case fails the same way on native Windows because its fixture puts a Bash-shebang fake on a `:`-joined `PATH`. That forge fixture path remains unverified here; the suite is not fully green.
+- `bun run test`: 61 passed, 0 failed. The upstream `orch` suite is gone at this pin. `omp-port/patches/zzzz-windows-gh-fake.patch` makes the `watch-pr/github.test.ts` fake `gh` a Bun script with an `sh` or `.cmd` launcher on a `path.delimiter`-joined `PATH`, so it runs on native Windows.
 
 The user configuration and three installation registries remained hash-identical. These are local verification results, not evidence of fork publication, a live installation, or mode-state restoration after restart.
 
