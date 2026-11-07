@@ -6,11 +6,11 @@ Use the [consumer install and upgrade guide](plugins/pstack/README.md) to instal
 
 The official source is [`cursor/plugins`, subdirectory `pstack`](https://github.com/cursor/plugins/tree/main/pstack), by Lauren Tan under the MIT license. This fork continues [negoro26's original OMP port](https://github.com/negoro26/pstack-omp). Attribution and licenses remain in [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-The 0.15.32 update targets official commit `e73df471cd4bd918367e99f3dd9c51bd53ddf5f0`. `omp-port/UPSTREAM` holds the authoritative full 40-character commit SHA for the generated tree. Branch history and a marketplace description are not substitutes for that pin.
+The 0.15.36 update targets official commit `c742dd61706fbacc1b95f1a20b7b988cf096ce6c`. `omp-port/UPSTREAM` holds the authoritative full 40-character commit SHA for the generated tree. Branch history and a marketplace description are not substitutes for that pin.
 
 `omp-port/sync-upstream.sh` reads the version from the pinned canonical `pstack/plugin.json`, falling back to canonical `pstack/.cursor-plugin/plugin.json` for historical pins. It refreshes native OMP package metadata and the marketplace description, not a shipped copy of the canonical manifest. Generated skill, playbook, and principle counts live in the [marketplace catalog](.omp-plugin/marketplace.json).
 
-The update adds `/statechart`, `/sharpen`, `/in-your-own-words`, `/ketchup-video`, `/create-formal-verification-skill`, and `/maintain-formal-verification-skill`, and carries negoro26's `hold-unpushed` audit bucket and no-force worktree cleanup. The [plugin README](plugins/pstack/README.md#new-in-the-01532-update) describes them.
+The update ports upstream 0.15.33 to 0.15.36: the statechart compiler, the slimmer `/interrogate`, the agentic Orchestrate playbook with the upstream `scripts/orch` tree deleted, and Autopilot-stack as Autopilot-full without the merge. The OMP patches keep root-only publication and merges in Orchestrate and both autopilot playbooks. The [plugin README](plugins/pstack/README.md#new-in-the-01536-update) describes them.
 
 ## Deterministic regeneration
 
@@ -49,10 +49,10 @@ The resolved target is printed to stderr as `target <full-sha>`. If `SYNC_TARGET
 
 Before syncing, preserve any uncommitted edits to generated skills and agents. A normal sync refuses changes that it would overwrite, except for owned paths.
 
-To build the official 0.15.32 target:
+To build the official 0.15.36 target:
 
 ```bash
-bash omp-port/sync-upstream.sh e73df471cd4bd918367e99f3dd9c51bd53ddf5f0
+bash omp-port/sync-upstream.sh c742dd61706fbacc1b95f1a20b7b988cf096ce6c
 ```
 
 With no target argument, the script resolves the newest official commit that touched `pstack/`. An explicit target must be a full SHA in that path-filtered history. There is no `build` subcommand.
@@ -97,7 +97,7 @@ It asserts discovery of the six new skills, recorded on/off custom entries and p
 
 The same command can target an installed plugin directory instead of `plugins/pstack`. It does not test marketplace registration, optional agent discovery, model access, or permission enforcement. Report only the checks actually run.
 
-### Local 0.15.32 verification
+### Local 0.15.36 verification
 
 These commands were exercised against the local candidate. Paths and the catalog selector below are from the Windows run:
 
@@ -111,9 +111,9 @@ From `plugins/pstack/skills/poteto-mode/scripts`, the exercised commands were `b
 
 - `check-port.sh`: PASS, including generated-artifact reproducibility and metadata parity. Inventory totals remain in the marketplace catalog.
 - Worktree-audit E2E: PASS against real Git worktrees, native OMP session paths, and the audit script. It covers automatic lookup, dotenv/profile precedence, aliases, malformed records, unchanged OMP profile files, and inherited config-overlay isolation, plus `hold-unpushed` for a branch commit with no remote branch, a detached head off base, and unavailable enrichment. Permission-denial cases, control-character filenames, and POSIX XDG cases were explicitly skipped where Windows could not exercise them. The fixture isolates Git repository settings, hooks, signing, and GitHub CLI configuration.
-- Native RPC smoke: PASS for the six new skills, recorded on/off custom entries, pin toggling, no inference, and clean exit 0.
+- Native RPC smoke: PASS for the six 0.15.32 skills, recorded on/off custom entries, pin toggling, no inference, and clean exit 0.
 - `bun run typecheck`: PASS.
-- `bun run test`: 72 passed, 10 failed: nine `orch/orch.test.ts` `withFakeForge` cases and one `watch-pr/github.test.ts` fake-`gh` case. The pristine upstream tree at the same pin fails the same 10 on native Windows, because those fixtures put Bash-shebang fakes on a `:`-joined `PATH`. Those forge fixture paths remain unverified here; the suite is not fully green.
+- `bun run test`: 60 passed, 1 failed: the `watch-pr/github.test.ts` fake-`gh` case. The upstream `orch` suite is gone at this pin. That case fails the same way on native Windows because its fixture puts a Bash-shebang fake on a `:`-joined `PATH`. That forge fixture path remains unverified here; the suite is not fully green.
 
 The user configuration and three installation registries remained hash-identical. These are local verification results, not evidence of fork publication, a live installation, or mode-state restoration after restart.
 

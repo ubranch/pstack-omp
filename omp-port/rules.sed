@@ -30,6 +30,7 @@ s#`model`: the `why synthesizer` line, default `[^`]+`\.#Resolve the synthesizer
 s#Every spawn is `generalPurpose` with `readonly: false` \(agent mode\)\. \*\*Do not use readonly/Ask mode\.\*\* It strips MCP access, which disables the MCP-backed investigators and the synthesizer's citation spot-checks\. Investigators still shouldn't write anything\.#Resolve read-only investigators and the synthesizer through `skill://pstack-omp`. Their briefs permit the MCP lookups and citation checks they need, and forbid all writes.#
 s#with `subagent_type: "poteto-agent"` and an explicit model per the Subagents section#through `skill://pstack-omp` with read-only scope and existing role configuration#g
 s#`subagent_type: "([^"]+)"`#`agent`: `\1`#g
+s#Spawn each adversary as `generalPurpose`\.#Start each adversary through `skill://pstack-omp` as a worker with write access limited to its own worktree.#
 s#When a worker must start from a non-default pushed branch, pass `cloud_base_branch`\.#When a worker needs a non-default base, create its private `git worktree` on that exact base before dispatch and name the absolute path in its brief.#
 s#each a Cursor cloud agent#each a root-started worker in its own worktree#g
 s#Each live lane runs on its own cloud VM at the PR head\.#Each live lane runs in its own worktree at the exact PR head.#
