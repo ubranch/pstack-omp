@@ -8,6 +8,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 const bash = process.argv[2] ?? "bash";
+assert.equal(spawnSync("rg", ["--version"], { stdio: "ignore" }).status, 0, "worktree-audit E2E needs rg on PATH");
 const script = resolve(dirname(fileURLToPath(import.meta.url)), "../plugins/pstack/skills/poteto-mode/scripts/worktree-audit.sh");
 const root = realpathSync(mkdtempSync(join(tmpdir(), "pstack-audit-")));
 const repo = join(root, "repo");
