@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { createInterface } from "node:readline";
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const bash = process.argv[2] ?? "bash";
 const script = resolve(dirname(fileURLToPath(import.meta.url)), "../plugins/pstack/skills/poteto-mode/scripts/worktree-audit.sh");
-const root = mkdtempSync(join(tmpdir(), "pstack-audit-"));
+const root = realpathSync(mkdtempSync(join(tmpdir(), "pstack-audit-")));
 const repo = join(root, "repo");
 const active = join(root, "active worktree");
 const legacy = join(root, "legacy");
