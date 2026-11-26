@@ -38,8 +38,6 @@ Children start without the parent conversation. Each assignment must contain:
 - Change: source pointers, the settled contract, constraints, dependencies, the base SHA or generation, and decisions already made.
 - Acceptance: observable done predicates, required evidence, allowed verification commands or a root-only verification rule, report format, and stop conditions.
 
-During a `/poteto-mode` run, the first line of every brief is `Read skill://poteto-mode/worker.md before anything else.` Those operator rules load only from a slash command, so a child reaches them no other way.
-
 Put shared immutable material in `context` only when that field is exposed. Otherwise embed it in each standalone brief or point each brief to an authorized, accessible artifact. A file pointer does not replace the goal or write ownership. Ordinary children do not spawn children, ask the user, or run shared checks unless the root explicitly assigns that responsibility. When `yield` is exposed, require a terminal result as `data` or a failure as `error`, never both. Reports name only checks actually executed.
 
 ## Dispatch through task
