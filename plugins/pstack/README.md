@@ -7,7 +7,7 @@ omp plugin marketplace add ubranch/pstack-omp
 omp plugin install pstack@pstack-omp
 ```
 
-This is Lauren Tan's pstack methodology for OMP, updated to official pstack 0.15.36. It continues [negoro26's original port](https://github.com/negoro26/pstack-omp). Upstream workflows, scripts, and MIT attribution remain part of the port.
+This is Lauren Tan's pstack methodology for OMP, updated to official pstack 0.15.48. It continues [negoro26's original port](https://github.com/negoro26/pstack-omp). Upstream workflows, scripts, and MIT attribution remain part of the port.
 
 ## Start a task
 
@@ -49,15 +49,15 @@ Keep any local plugin edits before upgrading. Do not delete or replace `~/.omp/a
 
 Restart the OMP process after upgrading. A new chat inside an already-running process may still use the old plugin. Optional `poteto-agent` and `comment-sicko` agents are used only when the live task roster lists them. Agent discovery depends on the OMP version and installation route. The adapter can use another available worker when these agents are absent. Do not enable a broad discovery provider or change permissions just to make an optional agent appear.
 
-## New in the 0.15.36 update
+## New in the 0.15.48 update
 
-- The Orchestrate playbook is agentic. The coordinator runs the program with its own tools, and the upstream `scripts/orch` ledger, inbox, and frontier scripts are gone. In OMP the root still performs every push, retarget, and merge.
-- Autopilot-stack is Autopilot-full without the merge. A PR stacks only on a PR it builds on.
-- `/skill:interrogate` is shorter: adversaries run through the arena fan-out, and only findings proven by a run survive.
-- `/skill:statechart` moves to a compiler with separate frontends and backends.
-- `/skill:poteto-mode` restates the user's goal before work starts, and blocks a PR only for a problem a run can show.
+- `/skill:reframe` is new. It lists the problems a vague description could be, teaches the expert terms for the likely one with checked sources, and rewrites the description with them.
+- `poteto-mode/worker.md` holds the operator's rules for every started agent. In OMP, the root opens each brief with `Read skill://poteto-mode/worker.md before anything else.` Workers still return publication requests; the root pushes and opens PRs.
+- Skill texts are shorter. `/skill:architect`, `/skill:how`, `/skill:why`, and `/skill:reflect` work in one pass, and their reference prompts are gone. The Orchestrate playbook and the `check-plan.mjs` plan checker are gone upstream, and the Multi-phase plan playbook is a short checklist.
+- Upstream switched to Opus-first routing with a Gemini panel seat. The port does not copy those model IDs. Routing still comes from your `modelRoles` and `task.agentModelOverrides`.
+- `/skill:statechart` runs on native Windows and reads TLC output with `\r\n` line ends.
 
-The 0.15.32 update added `/skill:statechart`, `/skill:create-formal-verification-skill`, `/skill:maintain-formal-verification-skill`, `/skill:sharpen`, `/skill:in-your-own-words`, `/skill:ketchup-video`, and the worktree-audit `hold-unpushed` bucket. The 0.15.19 update added `/skill:ketchup`, `/skill:correct`, `/skill:poteto-help`, `/skill:benchmark-checklist`, and `/skill:principle-explain-the-number`.
+The 0.15.36 update made the Orchestrate playbook agentic, added Autopilot-stack, shortened `/skill:interrogate`, and moved `/skill:statechart` to a compiler. The 0.15.32 update added `/skill:statechart`, `/skill:create-formal-verification-skill`, `/skill:maintain-formal-verification-skill`, `/skill:sharpen`, `/skill:in-your-own-words`, `/skill:ketchup-video`, and the worktree-audit `hold-unpushed` bucket. The 0.15.19 update added `/skill:ketchup`, `/skill:correct`, `/skill:poteto-help`, `/skill:benchmark-checklist`, and `/skill:principle-explain-the-number`.
 
 The existing playbooks and executable scripts remain upstream-derived. Skill, playbook, and principle counts are generated into the [marketplace description](../../.omp-plugin/marketplace.json) by the sync script, not maintained in this README.
 

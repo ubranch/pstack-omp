@@ -32,9 +32,9 @@ Skill `globs` metadata does not guarantee automatic attachment on OMP. Read `ski
 
 ## Locate installed sources and programs
 
-For multi-phase plans, resolve script and reference paths from the loaded skill location. Do not assume a global plugin directory or that installed files are vendored in the product repository. Product-owned source pointers stay relative to that repository and its evidence generation.
+Resolve script and reference paths from the loaded skill location. Do not assume a global plugin directory or that installed files are vendored in the product repository. Product-owned source pointers stay relative to that repository and its evidence generation.
 
-For swarm and orchestrate, the root dispatches participants through `skill://pstack-omp`. Track owners return briefs for the root to dispatch. A collaboration UI is not an agent messaging API and does not authorize access to another session's workers.
+For swarm and the autopilot playbooks, the root dispatches participants through `skill://pstack-omp`. Track owners return briefs for the root to dispatch. A collaboration UI is not an agent messaging API and does not authorize access to another session's workers.
 
 ## Report scheduling capabilities honestly
 

@@ -29,6 +29,13 @@ router_index() {
 			}
 			print name
 		}
+		# Upstream 0.15.48 lists playbooks as one comma-separated line of titles, kebab-cased by rule.
+		active && section == "Playbooks" && /^[A-Z][A-Za-z -]*(, [A-Z][A-Za-z -]*)+\.$/ {
+			line = tolower($0)
+			sub(/\.$/, "", line)
+			n = split(line, titles, /, /)
+			for (i = 1; i <= n; i++) { gsub(/ +/, "-", titles[i]); print titles[i] }
+		}
 	' "$file" | LC_ALL=C sort -u
 }
 

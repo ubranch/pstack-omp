@@ -1,6 +1,6 @@
 --- a/skills/ketchup/SKILL.md
 +++ b/skills/ketchup/SKILL.md
-@@ -6,6 +6,8 @@ disable-model-invocation: true
+@@ -6,6 +6,8 @@
  
  # Ketchup
  
@@ -11,7 +11,7 @@
  Use [`/bro`](../bro/SKILL.md)'s voice, not its task: plain words, short sentences, no jargon, like one person catching up another. Say what changed for the user, not how you did it. Say "the tests pass", not "CI is green". Leave out hashes, file paths, commands, build numbers, and test counts unless the user needs one to act. Call each PR, branch, or agent by a name the user would know, not by a label you invented. If a fact needs context to make sense, give the context or leave the fact out.
 --- a/skills/make-bot-ui/SKILL.md
 +++ b/skills/make-bot-ui/SKILL.md
-@@ -8,6 +8,8 @@ disable-model-invocation: true
+@@ -8,6 +8,8 @@
  ---
  # How to make a bot UI
  
@@ -22,7 +22,7 @@
  ## Create the webhook routine
 --- a/skills/poteto-help/SKILL.md
 +++ b/skills/poteto-help/SKILL.md
-@@ -8,10 +8,12 @@ disable-model-invocation: true
+@@ -8,10 +8,12 @@
  
  Answer the user's question about pstack, hand them a prompt they can send, and link the file the answer came from. For a help question, don't start the work. The user asked how, and a pstack run spends real tokens, so let them send the prompt.
  
@@ -36,7 +36,7 @@
  ## Find out what they need
  
  Infer the need from the message and the conversation. A named situation, such as "which skill reviews a PR?", goes straight to its section. If the need is still unclear, ask one multiple-choice question with these options, then answer only the section they pick:
-@@ -24,40 +26,38 @@ Infer the need from the message and the conversation. A named situation, such as
+@@ -24,40 +26,38 @@
  
  Check the state that changes the answer, and mention it only when it does:
  
@@ -61,20 +61,20 @@
  3. Start a real task with `/poteto-mode`, a goal, and a check that can pass or fail.
  
 -Installing changes nothing until the user invokes a skill. Only `/setup-pstack` loads from the user's words. The [README](../../README.md) and [guide page 1](../../docs/guide/01-setup.md) have the details. Offer to word their first prompt with them, per [`references/prompting.md`](references/prompting.md).
--
--If cost is the worry, say where the tokens go and how to spend fewer. pstack spends extra tokens on subagents and review panels. Rerun `/setup-pstack` and pick a smaller budget or cheaper models. A role set to `auto` or `inherit-parent` runs on the chat's model, which saves tokens when the chat runs on Auto or a cheaper model. A shorter panel list runs fewer subagents, one for each entry. Save `/poteto-mode` for work that needs rigor.
 +Installing registers the skills and bundled agents; workflow execution still starts with invocation. The [README](../../README.md) and [OMP setup reference](../omp-mechanics/references/setup-pstack-config.md) hold the runtime details. Offer to word their first prompt with them, per [`references/prompting.md`](references/prompting.md).
  
--pstack is built for Cursor, and it also installs in Claude Code with `/plugin marketplace add cursor/plugins`, then `/plugin install pstack@cursor-plugins`. There, each command takes a `pstack:` prefix, such as `/pstack:poteto-mode`. The [Claude Code adapter](../../docs/harness/claude-code.md) maps the Cursor names, and a step that needs a Cursor-only feature, such as Bugbot or Automations, is skipped with a one-line note.
+-If cost is the worry, say where the tokens go and how to spend fewer. pstack spends extra tokens on subagents and review panels. Rerun `/setup-pstack` and pick a smaller budget or cheaper models. A role set to `auto` or `inherit-parent` runs on the chat's model, which saves tokens when the chat runs on Auto or a cheaper model. A shorter panel list runs fewer subagents, one for each entry. Save `/poteto-mode` for work that needs rigor.
 +If cost is the worry, explain that independent workers and review contexts spend tokens. Use the existing model configuration and keep rigor proportional to the task. The optional setup audit can explain valid cheaper choices. Do not derive a panel size from a model list or silently lower a required verification bar.
  
--Other tools can read the skills, because they use the Agent Skills format. But most workflow skills, including `/poteto-mode`, `/how`, `/why`, and `/teach`, spawn Cursor subagents with per-role models, and Custom Modes and `/loop` are Cursor features, so those parts may not work there.
+-pstack is built for Cursor, and it also installs in Claude Code with `/plugin marketplace add cursor/plugins`, then `/plugin install pstack@cursor-plugins`. There, each command takes a `pstack:` prefix, such as `/pstack:poteto-mode`. The [Claude Code adapter](../../docs/harness/claude-code.md) maps the Cursor names, and a step that needs a Cursor-only feature, such as Bugbot or Automations, is skipped with a one-line note.
 +This is the OMP port of pstack. [`pstack-omp`](../pstack-omp/SKILL.md) maps the methodology to the live task surface, and [`omp-mechanics`](../omp-mechanics/SKILL.md) owns platform amendments. Report capabilities from the live tools, not from a plugin version or another runtime.
  
+-Other tools can read the skills, because they use the Agent Skills format. But most workflow skills, including `/poteto-mode`, `/how`, and `/teach`, spawn Cursor subagents, some with per-role models, and Custom Modes and `/loop` are Cursor features, so those parts may not work there.
+-
  ## Start a task with `/poteto-mode`
  
--`/poteto-mode` matches the task to a playbook, copies the playbook's steps into the todo list, and runs the other skills as the steps need them. A step it skips stays in the list as `skip: <reason>`. A good prompt states the goal and how to tell it's done. It doesn't list skills, because a hand-written sequence tends to drop or reorder steps the playbook would keep. Read [`references/prompting.md`](references/prompting.md) before you help word one. [Guide page 2](../../docs/guide/02-poteto-mode.md) has examples.
-+`/poteto-mode` matches the task to a playbook, copies the playbook's steps into the todo list, and runs the other skills as the steps need them. A step it skips stays in the list as `skip: <reason>`. A good prompt states the goal and how to tell it's done. It doesn't list skills, because a hand-written sequence tends to drop or reorder steps the playbook would keep. Read [`references/prompting.md`](references/prompting.md) before you help word one. [Guide page 2](../../README.md) has examples.
+-`/poteto-mode` matches the task to a playbook, copies the playbook's steps into the todo list, and runs the other skills as the steps need them. A good prompt states the goal and how to tell it's done. It doesn't list skills, because a hand-written sequence tends to drop or reorder steps the playbook would keep. Read [`references/prompting.md`](references/prompting.md) before you help word one. [Guide page 2](../../docs/guide/02-poteto-mode.md) has examples.
++`/poteto-mode` matches the task to a playbook, copies the playbook's steps into the todo list, and runs the other skills as the steps need them. A good prompt states the goal and how to tell it's done. It doesn't list skills, because a hand-written sequence tends to drop or reorder steps the playbook would keep. Read [`references/prompting.md`](references/prompting.md) before you help word one. [Guide page 2](../../README.md) has examples.
  
  Whether `/poteto-mode` stays on depends on how the user starts it:
  
@@ -90,7 +90,7 @@
  
  ## Pick a skill
  
-@@ -93,11 +93,11 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
+@@ -94,11 +94,11 @@
  | Vet a performance number before reporting or acting on it | [`/benchmark-checklist`](../benchmark-checklist/SKILL.md) |
  | Run a large or cross-cutting change, or one to review after stepping away | [`/figure-it-out`](../figure-it-out/SKILL.md) |
  | Keep a decision log during a run, and review it afterward | [`/show-me-your-work`](../show-me-your-work/SKILL.md) |
@@ -104,7 +104,7 @@
  | Find their way around pstack | `/poteto-help` |
  
  If a skill directory next to this one is missing from the table, read its frontmatter and route by its description. The `principle-*` directories are covered under principles below.
-@@ -113,8 +113,8 @@ Close calls:
+@@ -113,8 +113,8 @@
  
  Not in pstack:
  
@@ -112,14 +112,14 @@
 -- `/loop` and `/create-skill` are Cursor built-ins.
 +- Prose cleanup uses the bundled `unslop` skill. Runtime verification uses the live browser or desktop controls, bash, or PTY as the surface demands.
 +- `/loop` is optional native runtime behavior, not a bundled pstack skill. Authoring uses the authoring-a-skill playbook and the live file tools.
- - pstack has no `/orchestrate` skill. Orchestrate is a `/poteto-mode` playbook. If the slash menu shows `/orchestrate`, another plugin provides it.
+ - pstack has no `/orchestrate` skill. If the slash menu shows `/orchestrate`, another plugin provides it.
  
  ## Playbooks and principles
-@@ -128,26 +128,26 @@ Playbooks are step lists inside `/poteto-mode`, not skills, so they have no slas
+@@ -128,26 +128,26 @@
  - "full autopilot on this queue" runs Autopilot-full. "autopilot, don't merge" runs Autopilot-stack.
  - "run the eval playbook" runs Eval.
  
--Without `/poteto-mode`, a phrase such as "babysit this pr" can start Cursor's own skill for the same job instead. The Playbooks section of [`poteto-mode`](../poteto-mode/SKILL.md) lists every playbook and when it applies. [Guide page 6](../../docs/guide/06-verify-and-ship.md) covers opening, babysitting, and landing a PR.
+-Without `/poteto-mode`, a phrase such as "babysit this pr" can start Cursor's own skill for the same job instead. The Playbooks section of [`poteto-mode`](../poteto-mode/SKILL.md) lists every playbook. [Guide page 6](../../docs/guide/06-verify-and-ship.md) covers opening, babysitting, and landing a PR.
 +Without `/poteto-mode`, another installed skill may claim a similar request. The Playbooks section of [`poteto-mode`](../poteto-mode/SKILL.md) lists the authoritative pstack workflows. The [README](../../README.md) covers opening, babysitting, and landing a PR.
  
 -pstack has no planning skill. Cursor's Plan Mode works alongside it. For work that spans phases or stacked PRs, asking `/poteto-mode` for a plan runs the [Multi-phase plan playbook](../poteto-mode/playbooks/multi-phase-plan.md), which writes the plan and doesn't implement it. For a design question, the Prototype playbook or `/architect` settles it in code first.
@@ -151,7 +151,7 @@
  
  ## Make pstack my own
  
-@@ -156,7 +156,7 @@ For a run that drifts, [`references/prompting.md`](references/prompting.md) has
+@@ -156,7 +156,7 @@
  - `/poteto-mode write a skill for <workflow>` runs the authoring playbook. The eval playbook tests a skill change blind.
  - Fix a misbehaving skill in its own PR, not inside the feature work where it went wrong.
  
@@ -162,7 +162,7 @@
  
 --- a/skills/poteto-help/references/prompting.md
 +++ b/skills/poteto-help/references/prompting.md
-@@ -38,7 +38,7 @@ A prompt states the intent and the check for done. The playbook supplies the ste
+@@ -38,7 +38,7 @@
  ## Before stepping away
  
  - Say "im going to bed" or "im stepping away" so the agent stops asking.
@@ -173,7 +173,7 @@
  - Ask for a decision log to audit later.
 --- a/skills/poteto-help/references/recipes.md
 +++ b/skills/poteto-help/references/recipes.md
-@@ -42,7 +42,7 @@ Swap in the real paths, skills, and done checks. Informal wording works.
+@@ -42,7 +42,7 @@
  
  ## Away and back
  
@@ -192,52 +192,3 @@
  **You own the plan, not the code. The plan is a checklist an owner runs box by box and the operator audits from the evidence.** The plan is the deliverable. Do not implement.
  
  1. When the change is one or two files with an obvious approach, skip the plan. Say so and stop.
-@@ -7,7 +9,7 @@
- 3. Explore in subagents through `skill://pstack-omp` with read-only scope and existing role configuration (the **guard-the-context-window** principle skill). Keep each subagent's configured model and effort, per the Subagents section. Each returns file pointers, conventions, test commands, and entry points. No inlined dumps.
- 4. Copy the skeleton below into the plan file and fill every placeholder. Unless the operator names a path, write the file under the agent store's `docs/`. Keep every heading and every sub-block in the order shown. One section per PR. One PR is one change with its own evidence (the **sequence-verifiable-units** principle skill). Name the execution playbook in **How to read this**. Pick `playbooks/autopilot-full.md` when the run may merge. Pick `playbooks/autopilot-stack.md` when the operator lands the PRs. A standing program takes `playbooks/orchestrate.md`.
- 5. Write under `/technical-writing` in full, then `/unslop`. The body is one Diátaxis mode, how-to. Appendices hold explanation and reference. Each heading states the task or the finding. No long dashes. No mid-sentence colons.
--6. Run `node skill://poteto-mode/scripts/check-plan.mjs <plan.md>` and fix every line it prints (the **encode-lessons-in-structure** principle skill).
-+6. Resolve `skill://poteto-mode/scripts/check-plan.mjs` to its loader-reported filesystem path, run `node <that path> <plan.md>`, and fix every line it prints (the **encode-lessons-in-structure** principle skill).
- 7. Hand back. Post the plan path and the script's output, then stop. Execution starts on the operator's explicit go, under the execution playbook the plan names.
- 
- **Verification.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked (the **prove-it-works** principle skill). That sentence is the verification rule. Every verification block opens with it. The live block is mandatory. Ten lanes at the PR head drive the real surface through its control skill, per the **swarm** skill, on the `swarm workers` model (default your fast code model). Each lane is one box with a concrete scenario, the screenshot it saves, and its pass predicate. One lane is the **Regression lane against trunk.** It runs the same load-bearing scenario on trunk and head. If trunk does not have the feature, the lane records that fact and gates the behavior the diff adds plus the end state the user waits for instead of inventing a trunk result. The perf gate is dual-sided. Trunk and head must both produce the named metric. If trunk lacks the feature, also isolate the work the diff adds and set an absolute budget for that work plus the end-to-end state the user waits for. Do not claim a ratio between unlike scenarios. The perf block names the metric, the interleaved probe, the trunk baseline measured first, and the rule with the number that fails. A PR that changes an interaction is review-gated. The operator reviews it in chat with screenshots and a video before merge. A PR that changes no interaction writes `**Review gate.** None. <PR id> is not review-gated.` and no boxes under it.
-@@ -32,13 +34,13 @@ Tests alone are not sufficient verification. A PR is verified only when its unit
- ### Arm the program
- 
- - [ ] State the protocol and this plan to the operator, then stop. Start execution only on the operator's explicit go.
--- [ ] Read these from trunk at program start. Re-read them at every tick.
-+- [ ] Read these from their installed skill URIs at program start. Re-read them at every tick; resolve scripts to loader-reported filesystem paths before invoking them.
-   - [ ] `read skill://poteto-mode/playbooks/<execution playbook>.md`
-   - [ ] `read skill://swarm/SKILL.md`
-   - [ ] the live control tool's documentation
-   - [ ] `read skill://poteto-mode/playbooks/opening-a-pr.md`
-   - [ ] `git show origin/main:<each skill or doc the product repo vendors itself>`
--- [ ] On the operator's go, arm the audit tick as `/loop 1h` with the tick prompt below. Never leave the cadence to memory.
-+- [ ] On the operator's go, schedule the hourly audit tick using `/loop 1h` only when exposed and already enabled, or the root-owned wake mechanism named by the execution playbook. Never leave the cadence to memory.
- - [ ] Use this tick prompt, verbatim. "Re-read the installed execution playbook. Audit the operation against it and fix drift in this tick. Probe every active lane and judge progress by side effects only. Stand down a stuck lane and dispatch its replacement now. Then post a short status message to the operator in chat only when the audit found a tracked change that no earlier status message reported, such as a PR opened, a code-ready head, a round launched or closed, a verdict, a merge, a stuck agent and the action taken, a blocker added or cleared, or a decision only the operator can make. Name every such change and nothing else. Do not repeat a table, the merged list, or an unchanged blocker. If the audit found none, end the turn with no reply text. Either way, log this tick's row in your decision trail. The row names the items reported, or none."
- - [ ] On the operator's hold or stand-down, send every owner a zero-writes order at once.
- 
---- a/skills/poteto-mode/scripts/check-plan.mjs
-+++ b/skills/poteto-mode/scripts/check-plan.mjs
-@@ -17,7 +17,8 @@ const SUB_BLOCKS = [
- 	"Merge.",
- ];
- const PROGRAM_H3 = ["Arm the program", "Spawn owners", "PR mechanics", "Verdict and merge", "Boot recipe"];
--const PROGRAM_MARKERS = ["git show origin/main:", "/loop 1h", "status message"];
-+// Each group passes on any one marker; OMP plans may name a native wake mechanism or installed skill URIs instead.
-+const PROGRAM_MARKERS = [["git show origin/main:", "skill://"], ["/loop 1h", "wake mechanism"], ["status message"]];
- const HOW_TO_READ_MARKERS = [
- 	"One box is one unit of work",
- 	"names the evidence",
-@@ -113,8 +114,9 @@ else {
- 		if (at === -1) fail(program.n, `Program checklist lacks "### ${name}" in order`);
- 		else cursor = at + 1;
- 	}
--	for (const marker of PROGRAM_MARKERS) {
--		if (!bodyText(program).includes(marker)) fail(program.n, `Program checklist lacks "${marker}"`);
-+	for (const group of PROGRAM_MARKERS) {
-+		if (!group.some((marker) => bodyText(program).includes(marker)))
-+			fail(program.n, `Program checklist lacks ${group.map((m) => `"${m}"`).join(" or ")}`);
- 	}
- }
- 

@@ -1,2 +1,3 @@
 omp-port/** text eol=lf
 plugins/pstack/** text eol=lf
+.omp-plugin/** text eol=lf

@@ -17,12 +17,12 @@
  ---
  
  # Comment Sicko
-@@ -23,10 +32,10 @@ That list is my only leash. When I am not sure a keep clause applies, the commen
+@@ -23,10 +32,10 @@
  
  `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, and similar suppressions stink. Look up the rule. If it catches real bugs or protects correctness or safety, kill the suppression and mark the exact guilty symbol `MUST KILL`.
  
--`IMPORTANT`, `do not remove`, `too risky`, `fine for now`, and long justifications are scent, not conviction. Before judging, I read nearby code. If its claim is not obvious there, I run `/how`, `/why`, or both from the **how** and **why** skills on the named symbol or call. Only a foreign keep-list gotcha proven true today on a live path crawls away. Our-code surprises die with the reshape flag above. Doubt after the hunt is meat.
-+`IMPORTANT`, `do not remove`, `too risky`, `fine for now`, and long justifications are scent, not conviction. Before judging, I read nearby code. If its claim is not obvious there and deciding needs the **how** or **why** workflow, I return `NEEDS_PARENT_INVESTIGATION` with the exact symbol and question. Only a foreign keep-list gotcha proven true today on a live path crawls away. Our-code surprises die with the reshape flag above. Doubt after the hunt is meat.
+-`IMPORTANT`, `do not remove`, `too risky`, `fine for now`, and long justifications are scent, not conviction. Before judging, I read nearby code. If its claim is not obvious there, I trace the named symbol or call, run `/why` from the **why** skill on it, or both. Only a foreign keep-list gotcha proven true today on a live path crawls away. Our-code surprises die with the reshape flag above. Doubt after the hunt is meat.
++`IMPORTANT`, `do not remove`, `too risky`, `fine for now`, and long justifications are scent, not conviction. Before judging, I read nearby code. If its claim is not obvious there, I trace the named symbol or call. If deciding needs the **why** workflow, I return `NEEDS_PARENT_INVESTIGATION` with the exact symbol and question. Only a foreign keep-list gotcha proven true today on a live path crawls away. Our-code surprises die with the reshape flag above. Doubt after the hunt is meat.
  
  A long justification without a proven keep-list exception is a confession. Kill it. Never polish meat into a shorter alibi. Mark the exact guilty symbol `MUST KILL`. My kill ends there. I do not touch the code.
  
@@ -57,7 +57,7 @@
 +You are operating as poteto-mode's full agent style. The chat that receives `/poteto-mode` owns the playbook and dispatch. You are one delegate. Read `skill://poteto-mode`, `skill://omp-mechanics`, and `skill://pstack-omp` before work. Navigate to a leaf `principle-*` skill whenever you apply that principle. Follow the standalone brief's writable paths and verification contract. Do not start children or ask the user directly. Finish through `yield` with `PASS`, `ISSUES`, or `BLOCKED`, changed files, checks actually performed, deviations, and unresolved risks. The parent independently accepts the artifact.
 --- a/skills/no-comments/SKILL.md
 +++ b/skills/no-comments/SKILL.md
-@@ -6,9 +6,9 @@ disable-model-invocation: true
+@@ -6,9 +6,9 @@
  
  # No comments
  
@@ -69,18 +69,18 @@
  
  ## Scope
  
-@@ -16,7 +16,7 @@ Use the caller's files or diff. Otherwise use the current diff against the base
+@@ -16,7 +16,7 @@
  
  ## Steps
  
 -1. Spawn `Task` with `agent`: `comment-sicko`. Pass the scope. Keep each subagent's configured model and effort, per the Subagents section of the **poteto-mode** skill. Do not restate its rules.
 +1. Resolve the comment reviewer through `skill://pstack-omp` and start one bounded read-only brief. Pass the scope and the agent-file pointer. Only pass fields exposed by the live task schema.
- 2. Inspect its report and diff. Reject application-code edits, scope escapes, exception-protected deletions, misstated `MUST KILL` reasons, and flags that treat kept intentional code as guilty. Reshape flags on our-code surprises stay actionable. Do not restore those comments. A keep survives only with proof it is about something we cannot change. Audit missed scoped lint and TypeScript suppressions. Correctness or safety suppressions stay actionable `MUST KILL`s. Restore deletions only with exact exceptions and scoped proof. Before accepting thin `IMPORTANT` or `do not remove` kills or keeps, run `/how` or `/why` on their symbol. If a kill is ambiguous, do not restore. If a keep is refuted or still ambiguous, delete it. Revert and rerun one rejected report with the failure named. Reject a second, report it open, and fail `/no-comments`.
+ 2. Inspect its report and diff. Reject application-code edits, scope escapes, exception-protected deletions, misstated `MUST KILL` reasons, and flags that treat kept intentional code as guilty. Reshape flags on our-code surprises stay actionable. Do not restore those comments. A keep survives only with proof it is about something we cannot change. Audit missed scoped lint and TypeScript suppressions. Correctness or safety suppressions stay actionable `MUST KILL`s. Restore deletions only with exact exceptions and scoped proof. Before accepting thin `IMPORTANT` or `do not remove` kills or keeps, trace their symbol or run `/why` on it. If a kill is ambiguous, do not restore. If a keep is refuted or still ambiguous, delete it. Revert and rerun one rejected report with the failure named. Reject a second, report it open, and fail `/no-comments`.
  3. Fix trivial accepted flags directly by deleting a dead path, dropping a parameter, or using the real API. If any fix needs a shape, run `/architect` once for the accepted set and surrounding code. Stop at the sketch. Architect shapes. Step 4 implements.
  4. Implement the smallest root-cause fix in scope. Remove every named workaround. If the root cause is out of scope, land the smallest in-scope fix and report the rest open. The **principle-fix-root-causes** and **principle-redesign-from-first-principles** skills guide intent only. Neither authorizes widening the fence nor fixing instances outside it. Never bolt on symptom guards.
 --- a/skills/poteto-mode/SKILL.md
 +++ b/skills/poteto-mode/SKILL.md
-@@ -8,10 +8,10 @@ color: yellow
+@@ -8,16 +8,16 @@
  
  # Poteto mode
  
@@ -92,8 +92,15 @@
 +
  The Principles section below grounds every trigger. In your reply, name each principle that shaped a decision and the specific choice it changed. Cite only principles whose leaf SKILL.md you read this session.
  
- Remaining triggers:
-@@ -81,7 +81,7 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
+ The remaining triggers live only here:
+ 
+ - First message → restate the user's goal and the smallest change that meets it, then proceed. Open each subagent brief, PR `## Why`, and final report with the goal.
+-- Starting any agent, whether a Task subagent or a Project worker → the first line of its kickoff is `Read <path>/worker.md before anything else.`, with `<path>` the absolute path of this skill's folder. The operator's rules live in skills that only load from a slash command, so they reach another agent no other way. Keep the rest of the kickoff to the goal and the task, plus this file's absolute path for a `poteto-agent`.
++- Starting any agent → the first line of its brief is `Read skill://poteto-mode/worker.md before anything else.` The operator's rules live in skills that only load from a slash command, so they reach another agent no other way. Keep the rest of the brief to the goal and the task, per `skill://pstack-omp`.
+ - A fork you could settle by running something → prototype it per `playbooks/prototype.md` instead of asking.
+ - Code → name the data shape first. Across a function boundary → **architect**. Fan-out → **swarm**. Bakeoff → **arena**. Contested design → **interrogate**.
+ - Prose, your reply included → **unslop**. Docs, PR descriptions, commit messages → **technical-writing**.
+@@ -73,7 +73,7 @@
  
  ## Autonomy
  
@@ -102,29 +109,27 @@
  
  **Always pause** for irreversible writes: force-push to shared branches, deploys, data deletion, customer messages.
  
-@@ -91,11 +91,9 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
+@@ -83,18 +83,10 @@
  
  ## Subagents
  
--**Use `agent`: `poteto-agent` for any subagent you spawn inside a playbook step** (code-writing delegates, ad-hoc helpers). The chat that receives `/poteto-mode` runs the playbook. Never spawn a `poteto-agent` to run the playbook itself. Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) set their own `subagent_type` for diverse-model review. Respect what the skill prescribes, don't override to `poteto-agent`.
--
--**Defaults for every `Task` call.** `run_in_background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, explicit model per role (configurable via `/setup-pstack`. Defaults your fast code model for code, your strongest judgment model for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model, whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role lines in the `/setup-pstack` rule override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent chat model (omit Task `model`). Each code playbook's configured model comes from its line (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.
+-**Use `agent`: `poteto-agent` for any subagent you spawn directly inside a playbook step.** The chat that receives `/poteto-mode` runs the playbook itself. Routed workflow skills (`interrogate`, `swarm`) set their own `subagent_type`. Respect it.
 +Resolve every subagent through `skill://pstack-omp` against the live roster. Prefer the appropriate specialist. The optional `poteto-agent` target runs one bounded delegate brief, never the playbook itself. The root starts workers, reviewers, and watchers. Routed workflow skills retain their independent contexts and model-diversity requirements; report unavailable diversity honestly.
  
--**Match the model to the job.** Before each spawn, start from the role's line or default and pick the reasoning level and speed the job needs. The `/setup-pstack` budget sets each role's starting level, xhigh by default. Raise it one step, up to max, for the hardest or subtlest work. Lower it one step for judgment and two or more steps for routine work. Use fast mode only when the job is urgent, meaning CI or trunk is red or a person is blocked on the result right now. Otherwise use standard speed, the same slug without `-fast`. Verification is the exception and stays on the `swarm workers` model and speed (your fast code model by default). Change only the effort level and whether the slug is fast, and keep the family the role names, so a diverse panel stays diverse. If the family has no slug at that level and speed, use its nearest slug. A role on `auto` or `inherit-parent` stays on the parent model. If the Task tool rejects the adjusted slug, do not try another adjusted slug. Use the role's line or default and say so. If the Task tool rejects that too, continue with the calling skill's fallback. A slug counts as rejected once a Task error says that the model is not valid, or leaves the slug out of its list of valid slugs. Never pass a rejected slug, and skip any fallback whose slug is already rejected. When the calling skill has no fallback, use the closest valid slug of the role's family from the error's list of valid slugs, or omit `model` so the subagent runs on the parent model when the list has none. When the calling skill's fallback runs out of slugs without saying what to do next, omit `model` too. Say so in both cases.
+-**Defaults for every `Task` call.** `run_in_background: true`, agent mode (readonly strips MCP), file pointers not inlined context, and an explicit model per role, Project workers included. `/setup-pstack` writes `~/.cursor/rules/pstack-models.mdc`, whose per-role lines override the defaults below and the role models in the routed skills (`arena`, `swarm`, `interrogate`). A role with no line keeps its default. A line of `inherit-parent` or `auto` runs the role on the parent model, so omit `model` and spawn `generalPurpose`, because `poteto-agent` defaults to Opus 5.5. Each code playbook reads its own line (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), prose and judgment read `judgment and prose`, and trivial mechanical edits read `swarm workers`. If the rule has no `# defaults: 3` line, an older setup wrote it. Keep honoring its lines, and tell the user once per session to rerun `/setup-pstack`.
 +Start genuinely independent work through `skill://pstack-omp`: one `tasks[]` batch when exposed, otherwise one flat `task`/`solutionSpace` call per participant, all before waiting. Each participant gets a standalone brief and explicit write ownership; embed shared context or its authorized artifact in each flat brief. The root starts additional participants and reviewers; ordinary workers do not start children. Models and reasoning settings come from the operator's existing configuration, not per-call overrides. Do not change `task.batch` or other operator settings to satisfy a skill example.
  
- You own every subagent's work. Review the diff and write your own summary, don't pass through what it said. A second opinion is the same prompt against a different model. Agreement is high-signal.
+-- Code, prose, and judgment: your strongest judgment model.
+-- Trivial mechanical edits: your strongest judgment model.
+-- Diverse review and design panels: one runner each on your strongest judgment model, your strongest judgment model, and your configured model for this role.
+-
+-**Fable 5.2 is an exception.** It runs outside a panel only when the user named it for this task or two Opus 5.5 xhigh runs of the same brief failed its check. Say which. Difficulty alone never qualifies.
+-
+-**Match the model to the job.** Start from the role's line or default, keep its family, and set the level the job needs. The `/setup-pstack` budget sets each role's starting level. Panel seats keep their listed level. Raise any other role one step, up to xhigh, for the hardest or subtlest work, lower it one step for judgment, and two or more steps for routine work. No role runs above xhigh. Opus 5.5 always runs its `-fast` slug. Verification always runs on the `swarm workers` model, your strongest judgment model by default. A Gemini seat runs at your configured model for this role unless its line names another level. If the Task tool rejects a slug, never pass it again. Fall back to the role's line or default, then the calling skill's fallback, then the closest valid slug of the same family, then omit `model`. Say so.
+-
+ You own every subagent's work. Review the diff and write your own summary. A second opinion is the same prompt on another vendor's model.
  
-@@ -135,7 +133,7 @@ A large or cross-cutting effort (a migration across many call sites, an ambitiou
- - **Refactoring.** A behavior-preserving change to structure or shape (rename, extract, inline, dedupe, move).
- - **Prototype.** A throwaway sketch to make a design or behavioral decision cheaply, or to settle an empirical fork by observing it instead of asking the human ("prototype", "mock it up", "try this layout", "sketch it to decide").
- - **Visual parity.** Pixel-exact UI equivalence: matching two implementations or migrating a styling system.
--- **Authoring or modifying a skill.** Writing or editing a SKILL.md. File: `playbooks/authoring-a-skill.md`.
-+- **Authoring or modifying a skill.** Writing or editing a SKILL.md. `skill://poteto-mode/playbooks/authoring-a-skill.md`.
- - **Eval.** Testing how a skill, structure, or prompt change affects agent behavior before promoting it.
- - **Babysit.** Driving a PR or a stack to merge-ready: conflicts, review threads, CI.
- - **Shipping.** The half after Babysit. Independently verifying a green stack, then landing the contiguous verified run bottom-up through `gh` by default or Origin when its CLI is available.
+ **Fresh subagents by default.** Give a fix round, a follow-up, a retry, or the next queue item to a fresh subagent with the original brief, every later directive, and the prior agent's report and branch. Resume an existing subagent only when the work needs state that lives in it and is costly to move: its checkout, its uncommitted changes, or a process it still runs.
 --- a/skills/poteto-mode/playbooks/autopilot-full.md
 +++ b/skills/poteto-mode/playbooks/autopilot-full.md
 @@ -1,25 +1,27 @@
@@ -137,8 +142,8 @@
  A verdict covers one patch and green CI covers one head. Step 4 runs a full swarm once, and again only for a major change. The patch-id rule in `playbooks/shipping.md` can carry a lane's result, and every new head needs its own green CI.
  
  1. **The operator's gates come first.** The grant covers only the queue's items, so items the operator names as theirs and PRs outside the queue stop at merge-ready. A request to state the plan is not a go.
--2. **Spawn one owner per PR, and keep its work where a replacement can find it.** Resolve the forge once for the program. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). Each owner is a Cursor cloud agent that builds, opens its PR per `playbooks/opening-a-pr.md`, proves the change on the real artifact, babysits to green per `playbooks/babysit.md`, and merges once steps 4 and 5 clear it.
-+2. **Spawn one owner per PR, and keep its work where a replacement can find it.** Resolve the forge once for the program. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). Each owner is a root-started owner in its own worktree that builds, prepares its PR per `playbooks/opening-a-pr.md` and returns a ready-PR request, proves the change on the real artifact, babysits to green per `playbooks/babysit.md`, and returns merge-ready evidence once steps 4 and 5 clear it. The root performs every push, PR mutation, and merge.
+-2. **Spawn one owner per PR, and keep its work where a replacement can find it.** Resolve the forge once for the program. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). Each owner is a Cursor cloud agent that builds, opens its PR per `playbooks/opening-a-pr.md`, proves the change on the real artifact, babysits to green per `playbooks/babysit.md`, and merges once steps 4 and 5 clear it. Where that playbook says to report a rebase, the owner prepares the local rebase and reports its exact head; the root publishes it with `git push --force-with-lease`.
++2. **Spawn one owner per PR, and keep its work where a replacement can find it.** Resolve the forge once for the program. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). Each owner is a root-started owner in its own worktree that builds, prepares its PR per `playbooks/opening-a-pr.md` and returns a ready-PR request, proves the change on the real artifact, babysits to green per `playbooks/babysit.md`, and returns merge-ready evidence once steps 4 and 5 clear it. Where that playbook says to report a rebase, the owner prepares the local rebase and reports its exact head; the root publishes it with `git push --force-with-lease`. The root performs every push, PR mutation, and merge.
  
 -   Open the PR early so CI and bots run alongside the work. The code is ready only after the slop-strip (the `unslop` skill (`skill://unslop`)) and the `/no-comments` pass, so the full swarm runs on finished code. Then rebase onto current trunk and report the code-ready head before self-proof, so verification runs on the base the patch lands on. Report every later head, and merge-ready once self-proof, CI, and babysit are done. Fix rounds stay on that base unless trunk conflicts, breaks CI, or lands a known concurrent change to the same files, because each rebase restarts CI. Run the repo's checks for the touched paths on the committed head before the code-ready push and before a later push that needs a verifier.
 +   Request the PR early so CI and bots run alongside the work. The code is ready only after the slop-strip (the `unslop` skill (`skill://unslop`)) and the `/no-comments` pass, so the full swarm runs on finished code. Then rebase onto current trunk and report the code-ready head before self-proof, so verification runs on the base the patch lands on. Report every later head, and merge-ready once self-proof, CI, and babysit are done. Fix rounds stay on that base unless trunk conflicts, breaks CI, or lands a known concurrent change to the same files, because each rebase restarts CI. Run the repo's checks for the touched paths on the committed head before the code-ready publication request and before a later one that needs a verifier.
@@ -172,7 +177,7 @@
  
 -1. **In place of step 5, stop at verified.** Stop when each PR is verified and green at its current head, then hand the PRs to the operator. After the handoff, nobody pushes without the operator's go. Every loop tick prompt names this file, so each tick sees the no-merge rule.
 +1. **In place of step 5, stop at verified.** Stop when each PR is verified and green at its current head, then hand the PRs to the operator. After the handoff, the root publishes nothing without the operator's go. Every audit tick reads this file from its installed URI, so each tick sees the no-merge rule.
- 2. **Stack a PR only when it builds on another PR.** This is the one exception to step 3. Base the PR on the other PR's branch in place of trunk, per **Size and stacks** in `playbooks/opening-a-pr.md`. In place of step 2's rebase onto trunk, each PR rebases onto its parent PR's branch, and the stack root rebases onto trunk. A new head on the lower PR restacks the PRs above it, and a PR whose `git patch-id` the restack leaves unchanged keeps its verdict.
+ 2. **Stack a PR only when it builds on another PR.** This is the one exception to step 3. Base the PR on the other PR's branch in place of trunk, per `playbooks/opening-a-pr.md`. In place of step 2's rebase onto trunk, each PR rebases onto its parent PR's branch, and the stack root rebases onto trunk. A new head on the lower PR restacks the PRs above it, and a PR whose `git patch-id` the restack leaves unchanged keeps its verdict.
  
  **Reply:** list each PR with its verdict, in place of what merged.
 --- a/skills/poteto-mode/playbooks/babysit.md
@@ -182,9 +187,9 @@
  
 +Read `skill://pstack-omp` for dispatch and lifecycle. The root starts participants, accepts evidence, and performs authorized external writes and merges after the applicable operator, CI, and independent-review gates. A bounded worker prepares local branch/diff/head evidence and returns dispatch and PR-action requests instead of starting children or publishing. Use explicit private worktrees when writers overlap. Keep the operator's model configuration and approval policy unchanged.
 +
- **You own the merge frontier. Declare a mode, clear one PR at a time, stop where the human's call begins.** This playbook replaces Cursor's built-in babysit skill for these requests, so do not route there even though its description matches the same words. A request to land or ship is `playbooks/shipping.md`, which begins where this playbook ends.
+ **You own the merge frontier. Declare a mode, clear one PR at a time, stop where the human's call begins.**
  
- Babysitting starts when the user asks for it, which is normally once a phase or a whole stack is built, not when a PR opens. Finish the stack, get it green here, then land it through Shipping.
+ - Declare the mode in your first line, before any poll. Modes: `drive` loops to merge-ready, `threads-only` touches only review threads, `check` is one status pass and a report.
 --- a/skills/poteto-mode/playbooks/opening-a-pr.md
 +++ b/skills/poteto-mode/playbooks/opening-a-pr.md
 @@ -1,5 +1,7 @@
@@ -194,45 +199,7 @@
 +
  Invoked at the end of every other playbook.
  
- **Worktree.** Work from a git worktree off main. Subagents inherit it. Multiple `Task` calls on the same branch each get their own worktree, or `git fetch && git reset --hard origin/<branch>` between them. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: reset from main, redo minimally.
---- a/skills/poteto-mode/playbooks/orchestrate.md
-+++ b/skills/poteto-mode/playbooks/orchestrate.md
-@@ -1,25 +1,27 @@
- ### Orchestrate
- 
-+Read `skill://pstack-omp` for dispatch and lifecycle. The root starts participants, accepts evidence, and performs authorized external writes and merges after the applicable operator, CI, and independent-review gates. A bounded worker prepares local branch/diff/head evidence and returns dispatch and PR-action requests instead of starting children or publishing. Use explicit private worktrees when writers overlap. Keep the operator's model configuration and approval policy unchanged.
-+
- **You run the program, never the code. Decide which agent does each piece of work, then check what each one produces.** For a standing project handed to one coordinator chat: multi-day, many stacked PRs, dozens to hundreds of subagents, few human turns. One task driven to a predicate is Autonomous run. One ambitious run that needs a bespoke workflow is figure-it-out. Work that one agent could finish inside the session's budget is not a program.
- 
--Run it with your own tools. Spawn workers with `Task`. Keep the program's state in the Project tracker (`notes.md`) and the Project store. Watch each PR with PR and CI event subscriptions when your harness has them. Call no scripts, run no polling loops, and never relay messages or status between agents.
-+Run it with your own tools. Start workers through `skill://pstack-omp`. Keep the program's state in the Project tracker (`notes.md`) and the Project store. Check PR and CI state through the forge when you need it. Call no scripts, run no polling loops, and never relay messages or status between agents. Read returned results through `agent://<id>` and message a live agent with `write agent://<id>`.
- 
- #### Topology
- 
--- **One owner per PR.** The owner is the only writer of its branch and carries the PR from build to merge. Only the owner pushes, rebases, or retargets it. Closing or retargeting a base PR orphans every PR above it, so the owner does that only on your call. You never author or edit code. Conflicted merges, chain rebases, and fixes go to owners.
--- **A fresh worker for each independent task.** Its kickoff carries everything it needs, including each upstream report it depends on, pasted in full. Workers can't see their siblings. Run workers on a new cloud VM (`environment: "cloud"`) unless the work needs this machine: a the live browser controls or bash and PTY runtime check (from `cursor-team-kit`), local transcripts, a simulator, or auth that exists only here. Keep each subagent's configured model and effort, per the Subagents section.
--- **A sub-coordinator only when one area has many parallel workers.** It owns that area's workers and kickoffs and sends you one rollup, never raw worker reports. Stop at three levels: you, sub-coordinators, and workers. Keep about ten workers in flight per coordinator, and start the next one as each finishes instead of waiting on a whole batch.
--- **Fork when new work needs a worker's built state,** such as its checkout, uncommitted changes, or a running process. Message a worker only for a follow-up on the same work. Never message one to check on it, because a message restarts an idle agent.
--- **Each PR gets a verifier that isn't its author,** on a different model family. The owner merges only on that verifier's pass at the current head.
-+- **One owner per PR.** The owner is the only local writer of its branch, in its own private worktree, and carries the PR from build to merge-ready. It returns exact heads and PR-action requests; the root performs every push, rebase publication, retarget, and merge after the existing gates. Closing or retargeting a base PR orphans every PR above it, so the root does that only on your call. You never author or edit code. Conflicted merges, chain rebases, and fixes go to owners.
-+- **A fresh worker for each independent task.** Its kickoff carries everything it needs, including each upstream report it depends on, pasted in full. Workers can't see their siblings. Each worker runs locally with a standalone brief and an explicit worktree path; runtime checks use the live browser controls or bash and PTY as the authorized assignment demands. Keep each subagent's configured model and effort, per the Subagents section.
-+- **A track owner only when one area has many parallel workers.** It authors that area's kickoffs and returns dispatch requests to the root, because ordinary workers do not start children, publish, or merge. It sends you one rollup, never raw worker reports. Stop at three levels: you, track owners, and workers. Keep about ten workers in flight per coordinator, and start the next one as each finishes instead of waiting on a whole batch.
-+- **Reuse a live worker when new work needs its built state,** such as its checkout, uncommitted changes, or a running process. Message a worker only for a follow-up on the same work. Never message one to check on it, because a message restarts an idle agent.
-+- **Each PR gets a verifier that isn't its author,** on a different model family. The root merges only on that verifier's pass at the current head.
- - **Start with one unit.** Take it through kickoff, owner, verifier, and merge before you fan out, so a flaw in the kickoff costs one agent instead of fifty. On near-identical cheap units, the first unit is that test.
- 
- #### Supervision
- 
- - **Each kickoff names the evidence that proves the work is done,** such as a command and its expected output, a control-skill check, or an artifact. It also names the goal, the paths the worker may and may not write, and the actions it must not take. If you can't name the evidence, the unit isn't scoped yet.
--- **Read the diff or the artifact, not only the worker's summary.** Green CI is an input to a verdict, not a verdict. Behavioral work needs more than a type check. A verdict covers one head SHA, so a new push needs a new verdict. Read a sample of each sub-coordinator's kickoffs while its workers run, and fix its instructions when one fails.
-+- **Read the diff or the artifact, not only the worker's summary.** Green CI is an input to a verdict, not a verdict. Behavioral work needs more than a type check. A verdict covers one head SHA, so a new head needs a new verdict. Read a sample of each track owner's kickoffs while its workers run, and fix its instructions when one fails.
- - **Send back work that drifts from scope or grows past what was asked.** Keep only the fixes that block the program, and park the rest as follow-ups.
- - **Check a PR's live state before you report on it,** with `gh pr view` and `gh pr checks` or your forge's equivalents, not the worker's last report. Account for every worker you spawned as done, replaced, or absorbed into another worker's scope.
--- **Stop or replace a worker that stalls or loops.** Judge it by its pushes and PR activity, not its status text. Retry by cause: a smaller scope after a context or memory limit, the same kickoff after a dropped connection, and a different model after a tool error. After two retries, drop the unit and replan around it. When a stopped worker returns late, check its result against the PR's current state, and hand any unique findings to a fresh worker.
-+- **Stop or replace a worker that stalls or loops.** Judge it by its returned heads, worktree changes, and PR activity, not its status text. Retry by cause: a smaller scope after a context or memory limit, the same kickoff after a dropped connection, and a different model after a tool error. After two retries, drop the unit and replan around it. When a stopped worker returns late, check its result against the PR's current state, and hand any unique findings to a fresh worker.
- - **Ask the user only for a real decision or a blocker,** such as an irreversible action, a product or preference call that no experiment settles, or a dead end that survived a replan. Rebase mechanics, retries, CI flakes, review triage, and "should I keep going" never reach the user.
- 
- **Reply:** what landed against the goal, each PR's live state and verdict with its link, what was dropped and why, and the decisions waiting on the user.
+ Work from a git worktree off trunk, and keep unrelated work out of it. Rebase into small, landable commits. Run the `unslop` skill (`skill://unslop`) over the diff before commit.
 --- a/skills/poteto-mode/playbooks/shipping.md
 +++ b/skills/poteto-mode/playbooks/shipping.md
 @@ -1,12 +1,14 @@
@@ -247,54 +214,35 @@
  2. **Land only the contiguous verified run rooted at the bottom.** Walk up from the lowest unmerged PR and stop at the first one without `PASS` or `PASS+NOTES`. The PRs below it are the run, and the top one is the ceiling. A verified PR above an unverified one waits, because it cannot land without the code below it. One whose branch neither holds nor needs that code can move onto trunk and land on its own. It needs a fresh verdict first, because its old one ran with that code beneath it and trunk does not have it.
  3. **Re-check that the verdicts still describe the code.** A verdict covers a patch, and a chain rebase moves every PR above it to a new SHA without failing any check. Compare `git patch-id` at the verdict SHA with the current head before trusting an older verdict. When the patches differ only in tests, docs, or lint config, a lane's result stands if what it ran builds the same at both SHAs apart from noise. Noise is a difference that also shows up between two builds of the verdict SHA, or an embedded commit SHA. Report each kind of noise with its files, so a reader can check the call. The change itself still gets fresh checks and a review, because the old verdict never saw it. A lane with no build output, such as a dev server, cannot show this, so rerun it, and re-verify anything else that drifted.
  4. **Land bottom-up, one PR at a time.** Always merge the run's lowest unmerged PR, with `origin pr merge <pr>` or `gh pr merge <pr> --squash`. On Origin the plain command also merges every PR below the one you name, and on GitHub a PR whose base is still its parent's branch merges into that branch, not trunk. Read the PR back for the result (`origin pr view <pr>` or `gh pr view <pr> --json state,mergedAt,baseRefName`), because a merge command can report success when a merge queue only queued the PR, and a requested auto-merge is not a merge. A landed PR reads merged with trunk as its base, not its parent's branch. Arm `--auto` (Origin merge-when-ready or GitHub auto-merge) only on a PR whose verdict covers its current head, because it lands whatever head is ready. After a merge lands, retarget the PR whose base was the merged branch to trunk (`origin pr edit <pr> --base <trunk>` or `gh pr edit <pr> --base <trunk>`), move its patch onto the merge result, and push with `--force-with-lease`. The verdict covers the patch, not its commits, so step 3's patch-id rule decides whether the verdict survives. Merge it once its checks pass and its verdict survives.
--5. **Leave the stack alone while it lands.** Step 4's move of the next PR is the only change to a branch or base, because a merge lands whatever its branch and base hold at that moment, verdict or not. On GitHub, watch the run with the queued watcher from `playbooks/babysit.md` (`scripts/watch-pr/watch-pr --queued-stack --stack-prs <bottom-to-top>`) under `/loop` until it reports `COMPLETE` at the ceiling. On Origin, re-read the current PR with `origin pr view <pr> --checks` each time `origin pr checks <pr> --watch` returns, until the ceiling reads merged. A base that moves to trunk when its parent merges is expected, not damage to repair. If a merge stalls, find out why before you change anything.
-+5. **Leave the stack alone while it lands.** Step 4's move of the next PR is the only change to a branch or base, because a merge lands whatever its branch and base hold at that moment, verdict or not. On GitHub, watch the run with the queued watcher from `playbooks/babysit.md` (`scripts/watch-pr/watch-pr --queued-stack --stack-prs <bottom-to-top>`) with a root-owned watcher or the live loop when exposed and already enabled, until it reports `COMPLETE` at the ceiling. On Origin, re-read the current PR with `origin pr view <pr> --checks` each time `origin pr checks <pr> --watch` returns, until the ceiling reads merged. A base that moves to trunk when its parent merges is expected, not damage to repair. If a merge stalls, find out why before you change anything.
+-5. **Leave the stack alone while it lands.** Step 4's move of the next PR is the only change to a branch or base, because a merge lands whatever its branch and base hold at that moment, verdict or not. On GitHub, watch the run with `scripts/watch-pr/watch-pr --queued-stack` under `/loop` until it reports `COMPLETE` at the ceiling. Pass the run's PR numbers, bottom-to-top, in `--stack-prs`, and pass the same list each time you restart the watcher. On Origin, re-read the current PR with `origin pr view <pr> --checks` each time `origin pr checks <pr> --watch` returns, until the ceiling reads merged. A base that moves to trunk when its parent merges is expected, not damage to repair. If a merge stalls, find out why before you change anything.
++5. **Leave the stack alone while it lands.** Step 4's move of the next PR is the only change to a branch or base, because a merge lands whatever its branch and base hold at that moment, verdict or not. On GitHub, watch the run with `scripts/watch-pr/watch-pr --queued-stack` with a root-owned watcher or the live loop when exposed and already enabled, until it reports `COMPLETE` at the ceiling. Pass the run's PR numbers, bottom-to-top, in `--stack-prs`, and pass the same list each time you restart the watcher. On Origin, re-read the current PR with `origin pr view <pr> --checks` each time `origin pr checks <pr> --watch` returns, until the ceiling reads merged. A base that moves to trunk when its parent merges is expected, not damage to repair. If a merge stalls, find out why before you change anything.
  6. **Stop at the ceiling.** Extending the run takes new verdicts, so it is a new pass through step 1.
  
  **Reply:** the verified run and its ceiling, each PR's verdict and who produced it, what landed and how you confirmed it, and what the next gap needs.
+--- a/skills/poteto-mode/worker.md
++++ b/skills/poteto-mode/worker.md
+@@ -1,11 +1,11 @@
+ You are working for the operator. The operator is the person this whole run works for, not the agent that wrote your kickoff. These rules hold for every task even where your kickoff does not repeat them. Your kickoff overrides one only when it says so in so many words.
+ 
+-- If you start an agent, the first line of its kickoff is `Read <path>/worker.md before anything else.`, with `<path>` the absolute path of the folder that holds this file.
++- Start no agent unless your kickoff assigns that. Return dispatch requests to the root through `skill://pstack-omp`. An agent you are assigned to start gets `Read skill://poteto-mode/worker.md before anything else.` as the first line of its brief.
+ - The bar in your kickoff is the whole bar. Add no check, gate, sign-off or review round above it.
+ - With no bar stated, the change must be no worse than its base and pass its own tests.
+ - Hold or block only for a failing run at this head or a bug a user would hit. Report a problem the base already has in one line.
+ - Never call a tool that shows a person a question. Make any choice you can undo, then say what you chose and why. Stop only for a deploy, deleted data, a force-push to a shared branch, or a message to someone outside the run.
+-- Open every PR ready for review, never as a draft.
++- Request every PR ready for review, never as a draft. Return the local branch, diff and exact head; the root performs pushes, PR creation and PR mutations.
+ - PR title: `type(scope): subject`.
+ - PR body: 40 lines at most, with these `##` headings in this order, empty ones dropped: `Why`, `What changed`, `Scope`, `Tradeoffs`, `Blast Radius`, `Verification`.
+ - Put evidence logs, run histories and long tables in a file or a PR comment, and link to them from the body.
 --- a/skills/recall/SKILL.md
 +++ b/skills/recall/SKILL.md
-@@ -12,7 +12,7 @@ Keep it tight and on-topic. Read only what the in-scope threads need, then stop.
+@@ -12,7 +12,7 @@
  
- Your context lives in two records. Your own chat history holds what you did and decided. The shared record holds everything that happened around the same code under other names: the symptoms users keep reporting, the fixes that shipped and got reverted, the errors still firing in prod. That second record is what the **why** skill searches, across source control, the issue tracker, chat and issue channels, long-form docs, and error tracking. A feature with a long bug tail keeps most of its story there, so don't reconstruct it from your transcripts alone.
+ Your context lives in two records. Your own chat history holds what you did and decided. The shared record holds everything that happened around the same code under other names: the symptoms users keep reporting, the fixes that shipped and got reverted, the errors still firing in prod. That second record lives in source control, the issue tracker, chat and issue channels, long-form docs, and error tracking. A feature with a long bug tail keeps most of its story there, so don't reconstruct it from your transcripts alone.
  
 -Transcripts live at the current workspace's OMP session transcript, resolved from its session metadata, where `<slug>` is the workspace path with the leading slash dropped and each "/" turned into "-" (so `/Users/you/proj` becomes `Users-you-proj`). Every line is one chat message.
 +Resolve this workspace's transcript paths from actual session metadata or the history/archive resources exposed by the runtime. OMP session JSONL includes metadata records as well as message records. Inspect the returned format; do not assume Cursor's path encoding or that the first record is a user message.
  
  1. Classify, then route. One specific prior chat to resume is the `session-pickup` playbook, not this. Turning habits into a durable skill is `automate-me`. A human-readable summary of your work is a different task. Recall loads working context across recent chats before you act. If the user already gave you a full state capsule (paths, branch, the change), use it and skip the mining.
  2. Lock the scope before searching. Pin the window ("recent" is a real range, default the last 7 days), the topic if named, and the workspace (default the active one. Never read another project's transcripts without being asked). State the scope back. Never quietly turn "all" into "recent N".
---- a/skills/reflect/SKILL.md
-+++ b/skills/reflect/SKILL.md
-@@ -12,13 +12,11 @@ Invoke when the user says "reflect" or "/reflect". Skip when the conversation is
- 
- ## 1. Locate the active transcript
- 
--Before fanning out, find this conversation's transcript in the session transcript directory the system prompt names. Do not glob across unrelated workspace session buckets. That crosses workspace boundaries and reads private chats from unrelated projects.
-+Before fanning out, resolve this conversation's returned `history://<id>` handle or its transcript path from current session metadata. Read only this workspace's conversation. If neither is available, pass a tight digest and report that limit.
- 
--```bash
--ls -t <current-workspace-session-directory>/*.jsonl <current-workspace-session-directory>/*/*.jsonl <current-workspace-session-directory>/*/subagents/*.jsonl 2>/dev/null | head -10
--```
- 
--That covers the legacy flat (`<id>.jsonl`), current nested (`<id>/<id>.jsonl`), and subagent (`<parent>/subagents/<child>.jsonl`) layouts. For each candidate, read the first JSONL line. Take the file whose `message.content[0].text` contains the conversation's opening user prompt. If none matches, pass a tight digest of the session instead.
-+
-+OMP session files begin with metadata records, not the opening user message. When matching a file, inspect its actual message records and session metadata rather than assuming a Cursor layout.
- 
- ## 2. Spawn three reviewers in parallel
- 
-@@ -26,11 +24,11 @@ Start three independent reviewer contexts through `skill://pstack-omp`: one `tas
- 
- Resolve the three reviewers and synthesizer through `skill://pstack-omp`. Keep Divergent on a different model family from Judgment when returned model metadata proves that diversity. Otherwise report the limitation. Preserve the operator's existing configuration.
- 
--| Lens | Role line | Default `model` | Prompt template |
-+| Lens | Canonical role | Perspective | Prompt template |
- |---|---|---|---|
--| Judgment | `reflect judgment, divergent, synthesizer` | your strongest judgment model | `references/judgment-reviewer.md` |
--| Tooling | `reflect tooling` | your fast code model | `references/tooling-reviewer.md` |
--| Divergent | `reflect judgment, divergent, synthesizer` | your strongest judgment model | `references/divergent-reviewer.md` |
-+| Judgment | reviewer | Judgment | `references/judgment-reviewer.md` |
-+| Tooling | reviewer | Tooling | `references/tooling-reviewer.md` |
-+| Divergent | reviewer | Different model family when available | `references/divergent-reviewer.md` |
- 
- Pass each template verbatim, substituting the transcript path or digest where marked. Reviewers return findings in the `Task` response body.
- 

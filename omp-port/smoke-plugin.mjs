@@ -16,7 +16,7 @@ for (const key of Object.keys(env)) {
 }
 const child = spawn(process.platform === 'win32' ? 'omp.exe' : 'omp', [
   '--mode', 'rpc', '--no-session', '--no-title', '--no-extensions',
-  '--no-rules', '--no-lsp', '--no-tools', '--plugin-dir', plugin,
+  '--no-rules', '--no-lsp', '--tools', 'read', '--plugin-dir', plugin,
   '-e', resolve(plugin, 'extensions/potetomode/index.js'), '--model', model,
 ], { cwd: home, env, stdio: ['pipe', 'pipe', 'pipe'] });
 const lines = createInterface({ input: child.stdout })[Symbol.asyncIterator]();
@@ -56,7 +56,7 @@ async function request(type, fields = {}) {
 try {
   while ((await frame()).type !== 'ready') { }
   const { commands } = await request('get_available_commands');
-  for (const name of ['statechart', 'sharpen', 'in-your-own-words', 'ketchup-video', 'create-formal-verification-skill', 'maintain-formal-verification-skill']) {
+  for (const name of ['reframe', 'statechart', 'sharpen', 'in-your-own-words', 'ketchup-video', 'create-formal-verification-skill', 'maintain-formal-verification-skill']) {
     assert(commands.some(command => command.name === `skill:${name}` && command.source === 'skill'), `Missing skill ${name}`);
   }
   assert(commands.some(command => command.name === 'poteto-mode' && command.source === 'extension'), 'Pin extension not loaded');
@@ -70,7 +70,7 @@ try {
   assert(!entries.some(entry => entry.type === 'message' && entry.message?.role === 'assistant'), 'Smoke must not create model replies');
   child.stdin.end();
   assert.equal(await exited, 0, 'OMP must exit cleanly');
-  console.log('PASS: six new skills discovered; pin on/off recorded; no inference; clean RPC shutdown');
+  console.log('PASS: seven checked skills discovered; pin on/off recorded; no inference; clean RPC shutdown');
 } finally {
   clearTimeout(timer);
   if (child.exitCode === null) child.kill();
